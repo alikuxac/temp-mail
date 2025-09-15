@@ -2,7 +2,7 @@ import * as db from "@/database/d1";
 import * as kv from "@/database/kv";
 import { now } from "@/utils/helpers";
 import { logInfo } from "@/utils/logger";
-import { sendMessage } from "@/utils/telegram";
+// import { sendMessage } from "@/utils/telegram";
 
 /**
  * Cloudflare Scheduled Function
@@ -19,7 +19,7 @@ export async function handleScheduled(
 
 	if (success) {
 		logInfo("Email cleanup completed successfully.");
-		ctx.waitUntil(sendMessage("Email cleanup completed successfully.", env));
+		// ctx.waitUntil(sendMessage("Email cleanup completed successfully.", env));
 	} else {
 		throw new Error(`Email cleanup failed: ${error}`);
 	}
@@ -34,11 +34,11 @@ export async function handleDailyReport(
 	env: CloudflareBindings,
 	ctx: ExecutionContext,
 ) {
-	const topSenders = await kv.getTopSenders(env.KV, 10);
+	// const topSenders = await kv.getTopSenders(env.KV, 10);
 
-	const message = `*Top 10 Senders*\n\n${topSenders
-		.map(({ name, count }) => `*${name}*: ${count}`)
-		.join("\n")}`;
+	// const message = `*Top 10 Senders*\n\n${topSenders
+	// 	.map(({ name, count }) => `*${name}*: ${count}`)
+	// 	.join("\n")}`;
 
-	ctx.waitUntil(sendMessage(message, env));
+	// ctx.waitUntil(sendMessage(message, env));
 }
