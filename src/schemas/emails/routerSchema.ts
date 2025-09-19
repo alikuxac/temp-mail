@@ -3,7 +3,6 @@ import { z } from "@hono/zod-openapi";
 // Email address parameter schema
 export const emailAddressParamSchema = z.object({
 	emailAddress: z
-		.string()
 		.email()
 		.openapi({
 			param: {
@@ -18,7 +17,6 @@ export const emailAddressParamSchema = z.object({
 // Email ID parameter schema
 export const emailIdParamSchema = z.object({
 	emailId: z
-		.string()
 		.cuid2()
 		.openapi({
 			param: {

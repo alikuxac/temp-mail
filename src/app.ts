@@ -6,7 +6,7 @@ import corsMiddleware from "./middlewares/cors";
 import healthRoutes from "./routes/healthRoutes";
 import { ERR } from "./utils/http";
 
-const app = new OpenAPIHono<{ Bindings: CloudflareBindings }>();
+const app = new OpenAPIHono<{ Bindings: Env }>();
 
 // --- Middlewares ---
 app.use(corsMiddleware);

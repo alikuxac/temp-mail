@@ -10,7 +10,7 @@ import { logInfo } from "@/utils/logger";
  */
 export async function handleScheduled(
 	_event: ScheduledEvent,
-	env: CloudflareBindings,
+	env: Env,
 	ctx: ExecutionContext,
 ) {
 	const cutoffTimestamp = now() - env.HOURS_TO_DELETE_D1 * 60 * 60;
@@ -31,7 +31,7 @@ export async function handleScheduled(
  */
 export async function handleDailyReport(
 	_event: ScheduledEvent,
-	env: CloudflareBindings,
+	env: Env,
 	ctx: ExecutionContext,
 ) {
 	// const topSenders = await kv.getTopSenders(env.KV, 10);

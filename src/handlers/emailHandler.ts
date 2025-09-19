@@ -12,12 +12,12 @@ import { PerformanceTimer } from "@/utils/performance";
  */
 export async function handleEmail(
 	message: ForwardableEmailMessage,
-	env: CloudflareBindings,
+	env: Env,
 	ctx: ExecutionContext,
 ) {
 	try {
 		const timer = new PerformanceTimer("email-processing");
-		const emailId = message.headers.get("Message-ID") || createId();
+		const emailId = createId();
 		const email = await PostalMime.parse(message.raw);
 
 		// Process email content
@@ -37,6 +37,7 @@ export async function handleEmail(
 		const attachments = email.attachments || [];
 		if (attachments.length > 0) {
 			timer.end();
+			message.setReject('Attachments are not supported.');	
 			return;
 		}
 

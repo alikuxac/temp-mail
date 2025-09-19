@@ -15,7 +15,7 @@ import { emailAddressParamSchema, emailIdParamSchema, emailQuerySchema } from ".
 // Get emails route
 export const getEmailsRoute = createRoute({
 	method: "get",
-	path: "/emails/{emailAddress}",
+	path: "/api/emails/{emailAddress}",
 	request: {
 		params: emailAddressParamSchema,
 		query: emailQuerySchema,
@@ -54,7 +54,7 @@ export const getEmailsRoute = createRoute({
 // Get emails count route
 export const getEmailsCountRoute = createRoute({
 	method: "get",
-	path: "/emails/count/{emailAddress}",
+	path: "/api/emails/count/{emailAddress}",
 	request: {
 		params: emailAddressParamSchema,
 	},
@@ -92,7 +92,7 @@ export const getEmailsCountRoute = createRoute({
 // Delete emails route
 export const deleteEmailsRoute = createRoute({
 	method: "delete",
-	path: "/emails/{emailAddress}",
+	path: "/api/emails/{emailAddress}",
 	request: {
 		params: emailAddressParamSchema,
 	},
@@ -122,7 +122,7 @@ export const deleteEmailsRoute = createRoute({
 // Get single email route
 export const getEmailRoute = createRoute({
 	method: "get",
-	path: "/inbox/{emailId}",
+	path: "/api/inbox/{emailId}",
 	request: {
 		params: emailIdParamSchema,
 	},
@@ -160,7 +160,7 @@ export const getEmailRoute = createRoute({
 // Delete single email route
 export const deleteEmailRoute = createRoute({
 	method: "delete",
-	path: "/inbox/{emailId}",
+	path: "/api/inbox/{emailId}",
 	request: {
 		params: emailIdParamSchema,
 	},
@@ -198,7 +198,7 @@ export const deleteEmailRoute = createRoute({
 // Get domains route
 export const getDomainsRoute = createRoute({
 	method: "get",
-	path: "/domains",
+	path: "/api/domains",
 	responses: {
 		200: {
 			content: {

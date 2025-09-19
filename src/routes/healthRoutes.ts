@@ -3,7 +3,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { OK } from "@/utils/http";
 import { logError } from "@/utils/logger";
 
-const healthRoutes = new OpenAPIHono<{ Bindings: CloudflareBindings }>();
+const healthRoutes = new OpenAPIHono<{ Bindings: Env }>();
 
 // --- Routes ---
 // TODO: add it to the openapi docs

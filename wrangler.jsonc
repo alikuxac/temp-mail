@@ -29,17 +29,9 @@
 			"preview_id": "11fb38f381194b3487ffb75a9305968d" // Replace with the ID from `npm run kv:create`
 		}
 	],
-	// "r2_buckets": [
-	// 	{
-	// 		"binding": "R2",
-	// 		"bucket_name": "temp-mail-attachments",
-	// 		"preview_bucket_name": "temp-mail-attachments-preview"
-	// 	}
-	// ],
 	"triggers": {
 		"crons": [
-			"0 */4 * * *",
-			"0 */5 * * *"
+			"0 */4 * * *"
 		]
 	},
 	"vars": {

@@ -3,7 +3,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 import { DOMAINS_SET } from "@/config/domains";
 
-export function setupDocumentation(app: OpenAPIHono<{ Bindings: CloudflareBindings }>) {
+export function setupDocumentation(app: OpenAPIHono<{ Bindings: Env }>) {
 	// OpenAPI Documentation
 	app.doc("/openapi.json", {
 		openapi: "3.0.0",

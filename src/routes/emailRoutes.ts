@@ -14,14 +14,14 @@ import {
 } from "@/schemas/emails/routeDefinitions";
 import { ERR, OK } from "@/utils/http";
 
-const emailRoutes = new OpenAPIHono<{ Bindings: CloudflareBindings }>();
+const emailRoutes = new OpenAPIHono<{ Bindings: Env }>();
 
 // --- Middlewares ---
-emailRoutes.use("/emails/:emailAddress", validateDomain);
-emailRoutes.use("/emails/count/:emailAddress", validateDomain);
+emailRoutes.use("/api/emails/:emailAddress", validateDomain);
+emailRoutes.use("/api/emails/count/:emailAddress", validateDomain);
 
 // --- Routes ---
-// GET /emails/{emailAddress}
+// GET /api/emails/{emailAddress}
 // @ts-expect-error - OpenAPI route handler type mismatch with error response status codes
 emailRoutes.openapi(getEmailsRoute, async (c) => {
 	const { emailAddress } = c.req.valid("param");
@@ -33,7 +33,7 @@ emailRoutes.openapi(getEmailsRoute, async (c) => {
 	return c.json(OK(results));
 });
 
-// GET /emails/count/{emailAddress}
+// GET /api/emails/count/{emailAddress}
 // @ts-expect-error - OpenAPI route handler type mismatch with error response status codes
 emailRoutes.openapi(getEmailsCountRoute, async (c) => {
 	const { emailAddress } = c.req.valid("param");
@@ -44,7 +44,7 @@ emailRoutes.openapi(getEmailsCountRoute, async (c) => {
 	return c.json(OK({ count }));
 });
 
-// DELETE /emails/{emailAddress}
+// DELETE /api/emails/{emailAddress}
 // @ts-expect-error - OpenAPI route handler type mismatch with error response status codes
 emailRoutes.openapi(deleteEmailsRoute, async (c) => {
 	const { emailAddress } = c.req.valid("param");
@@ -69,7 +69,7 @@ emailRoutes.openapi(postToggleEmailVisibilityRoute, async (c) => {
 	return c.json(OK(success));
 });
 
-// GET /inbox/{emailId}
+// GET /api/inbox/{emailId}
 // @ts-expect-error - OpenAPI route handler type mismatch with error response status codes
 emailRoutes.openapi(getEmailRoute, async (c) => {
 	const { emailId } = c.req.valid("param");
@@ -80,7 +80,7 @@ emailRoutes.openapi(getEmailRoute, async (c) => {
 	return c.json(OK(result));
 });
 
-// DELETE /inbox/{emailId}
+// DELETE /api/inbox/{emailId}
 // @ts-expect-error - OpenAPI route handler type mismatch with error response status codes
 emailRoutes.openapi(deleteEmailRoute, async (c) => {
 	const { emailId } = c.req.valid("param");
@@ -91,7 +91,7 @@ emailRoutes.openapi(deleteEmailRoute, async (c) => {
 	return c.json(OK({ message: "Email deleted successfully" }));
 });
 
-// GET /domains
+// GET /api/domains
 emailRoutes.openapi(getDomainsRoute, async (c) => {
 	// Set cache headers for better performance
 	c.header("Cache-Control", `public, max-age=${CACHE.DOMAINS_TTL}`);
