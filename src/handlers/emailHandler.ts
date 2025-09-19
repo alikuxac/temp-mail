@@ -1,77 +1,11 @@
 import { createId } from "@paralleldrive/cuid2";
 import PostalMime from "postal-mime";
-import { ATTACHMENT_LIMITS } from "@/config/constants";
 import * as db from "@/database/d1";
 import { updateSenderStats } from "@/database/kv";
 import { emailSchema } from "@/schemas/emails/schema";
 import { now } from "@/utils/helpers";
 import { processEmailContent } from "@/utils/mail";
 import { PerformanceTimer } from "@/utils/performance";
-
-// Type for PostalMime attachments
-interface EmailAttachment {
-	filename: string | null;
-	mimeType?: string;
-	content?: string | ArrayBuffer;
-}
-
-/**
- * Validate and filter email attachments
- */
-function _validateAttachments(attachments: EmailAttachment[], emailId: string): EmailAttachment[] {
-	const validAttachments = [];
-	let totalAttachmentSize = 0;
-
-	for (const attachment of attachments) {
-		// Skip attachments without filename
-		if (!attachment.filename) {
-			console.warn(`Email ${emailId}: Attachment without filename, skipping`);
-			continue;
-		}
-
-		if (validAttachments.length >= ATTACHMENT_LIMITS.MAX_COUNT_PER_EMAIL) {
-			console.warn(`Email ${emailId}: Too many attachments, skipping remaining`);
-			break;
-		}
-
-		const attachmentSize =
-			attachment.content instanceof ArrayBuffer
-				? attachment.content.byteLength
-				: new TextEncoder().encode(attachment.content || "").byteLength;
-
-		// Check file type
-		const contentType = attachment.mimeType || "application/octet-stream";
-		if (
-			!ATTACHMENT_LIMITS.ALLOWED_TYPES.includes(
-				contentType as (typeof ATTACHMENT_LIMITS.ALLOWED_TYPES)[number],
-			)
-		) {
-			console.warn(
-				`Email ${emailId}: Attachment ${attachment.filename} has unsupported type (${contentType}), skipping`,
-			);
-			continue;
-		}
-
-		if (attachmentSize > ATTACHMENT_LIMITS.MAX_SIZE) {
-			console.warn(
-				`Email ${emailId}: Attachment ${attachment.filename} too large (${attachmentSize} bytes), skipping`,
-			);
-			continue;
-		}
-
-		totalAttachmentSize += attachmentSize;
-		if (totalAttachmentSize > ATTACHMENT_LIMITS.MAX_SIZE * ATTACHMENT_LIMITS.MAX_COUNT_PER_EMAIL) {
-			console.warn(
-				`Email ${emailId}: Total attachment size too large, skipping remaining attachments`,
-			);
-			break;
-		}
-
-		validAttachments.push(attachment);
-	}
-
-	return validAttachments;
-}
 
 /**
  * Cloudflare email router handler - optimized version
