@@ -1,5 +1,4 @@
 import { z } from "@hono/zod-openapi";
-import { DOMAINS_SET } from "@/config/domains";
 import { emailSchema } from "./schema";
 
 // Generic success response schema
@@ -139,20 +138,6 @@ export const emailDeleteSuccessResponseSchema = z
 	})
 	.openapi("DeleteEmailSuccessResponse");
 
-// Domains success response schema
-export const domainsSuccessResponseSchema = z
-	.object({
-		success: z.literal(true).openapi({
-			description: "Indicates that the request was successful.",
-			example: true,
-		}),
-		result: z.array(z.string()).openapi({
-			description: "A list of supported domains.",
-			example: Array.from(DOMAINS_SET),
-		}),
-	})
-	.openapi("DomainsSuccessResponse");
-
 // Domain error response schema with required note
 export const domainErrorResponseSchema = z
 	.object({
@@ -168,12 +153,6 @@ export const domainErrorResponseSchema = z
 			message: z.literal("Domain not supported").openapi({
 				description: "The error message.",
 				example: "Domain not supported",
-			}),
-		}),
-		note: z.object({
-			supported_domains: z.array(z.string()).openapi({
-				description: "A list of supported domains.",
-				example: Array.from(DOMAINS_SET),
 			}),
 		}),
 	})

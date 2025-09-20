@@ -1,16 +1,12 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { CACHE } from "@/config/constants";
-import { DOMAINS_SET } from "@/config/domains";
 import * as db from "@/database/d1";
 import validateDomain from "@/middlewares/validateDomain";
 import {
 	deleteEmailRoute,
 	deleteEmailsRoute,
-	getDomainsRoute,
 	getEmailRoute,
 	getEmailsCountRoute,
 	getEmailsRoute,
-	postToggleEmailVisibilityRoute,
 } from "@/schemas/emails/routeDefinitions";
 import { ERR, OK } from "@/utils/http";
 
@@ -57,18 +53,6 @@ emailRoutes.openapi(deleteEmailsRoute, async (c) => {
 	return c.json(OK({ message: "Emails deleted successfully", deleted_count: meta?.changes }));
 });
 
-// Post /email/visibility/{emailAddress}
-// @ts-expect-error - OpenAPI route handler type mismatch with error response status codes
-emailRoutes.openapi(postToggleEmailVisibilityRoute, async (c) => {
-	const { emailId } = c.req.valid("param");
-
-	const { success, error } = await db.toggleEmailVisibility(c.env.D1, emailId);
-
-	if (error) return c.json(ERR(error.message, "D1Error"), 500);
-	if (!success) return c.json(ERR("Email not found", "NotFound"), 404);
-	return c.json(OK(success));
-});
-
 // GET /api/inbox/{emailId}
 // @ts-expect-error - OpenAPI route handler type mismatch with error response status codes
 emailRoutes.openapi(getEmailRoute, async (c) => {
@@ -89,15 +73,6 @@ emailRoutes.openapi(deleteEmailRoute, async (c) => {
 	if (error) return c.json(ERR(error.message, "D1Error"), 500);
 	if (meta && meta.changes === 0) return c.json(ERR("Email not found", "NotFound"), 404);
 	return c.json(OK({ message: "Email deleted successfully" }));
-});
-
-// GET /api/domains
-emailRoutes.openapi(getDomainsRoute, async (c) => {
-	// Set cache headers for better performance
-	c.header("Cache-Control", `public, max-age=${CACHE.DOMAINS_TTL}`);
-	c.header("ETag", `"domains-${DOMAINS_SET.size}"`);
-
-	return c.json(OK(Array.from(DOMAINS_SET)));
 });
 
 export default emailRoutes;

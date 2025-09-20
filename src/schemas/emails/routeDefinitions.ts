@@ -1,7 +1,6 @@
 import { createRoute } from "@hono/zod-openapi";
 import {
 	domainErrorResponseSchema,
-	domainsSuccessResponseSchema,
 	emailDeleteSuccessResponseSchema,
 	emailDetailSuccessResponseSchema,
 	emailListSuccessResponseSchema,
@@ -193,53 +192,4 @@ export const deleteEmailRoute = createRoute({
 	tags: ["Inbox"],
 	summary: "Delete email inbox",
 	description: "Delete a specific inbox by its email ID",
-});
-
-// Get domains route
-export const getDomainsRoute = createRoute({
-	method: "get",
-	path: "/api/domains",
-	responses: {
-		200: {
-			content: {
-				"application/json": {
-					schema: domainsSuccessResponseSchema,
-				},
-			},
-			description: "List of all supported email domains",
-		},
-	},
-	tags: ["Domains"],
-	summary: "Get supported domains",
-	description: "Retrieve a list of all supported email domains",
-});
-
-// Toggle visivility of email
-export const postToggleEmailVisibilityRoute = createRoute({
-	method: "post",
-	path: "/email/visibility/{emailId}",
-	request: {
-		params: emailIdParamSchema,
-	},
-	responses: {
-		200: {
-			content: {
-				"application/json": {
-					schema: emailDetailSuccessResponseSchema,
-				},
-			},
-			description: "Successfully toggled email visibility",
-		},
-		404: {
-			content: {
-				"application/json": {
-					schema: notFoundErrorResponseSchema,
-				},
-			},
-			description: "Email not found",
-		},
-	},
-	tags: ["Email"],
-	summary: "Toggle email visibility",
-	description: "Toggle the visibility of an email by its ID",
 });
