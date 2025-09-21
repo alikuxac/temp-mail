@@ -80,7 +80,7 @@ export async function getEmailById(db: D1Database, emailId: string) {
 export async function deleteOldEmails(db: D1Database, timestamp: number) {
 	try {
 		const { success, error, meta } = await db
-			.prepare("DELETE FROM emails WHERE received_at < ? and is_forever = FALSE")
+			.prepare("DELETE FROM emails WHERE received_at < ?")
 			.bind(timestamp)
 			.run();
 		return { success, error, meta };
@@ -96,7 +96,7 @@ export async function deleteOldEmails(db: D1Database, timestamp: number) {
 export async function deleteEmailsByRecipient(db: D1Database, emailAddress: string) {
 	try {
 		const { success, error, meta } = await db
-			.prepare("DELETE FROM emails WHERE to_address = ? and is_forever = FALSE")
+			.prepare("DELETE FROM emails WHERE to_address = ?")
 			.bind(emailAddress)
 			.run();
 		return { success, error, meta };
@@ -135,21 +135,5 @@ export async function countEmailsByRecipient(db: D1Database, emailAddress: strin
 	} catch (e: unknown) {
 		const error = e instanceof Error ? e : new Error(String(e));
 		return { count: 0, error: error };
-	}
-}
-
-/**
- * Toggle the visibility of an email by ID
- */
-export async function toggleEmailVisibility(db: D1Database, emailId: string) {
-	try {
-		const { success, error, meta } = await db
-			.prepare("UPDATE emails SET is_forevery = NOT is_visible WHERE id = ?")
-			.bind(emailId)
-			.run();
-		return { success, error, meta };
-	} catch (e: unknown) {
-		const error = e instanceof Error ? e : new Error(String(e));
-		return { success: false, error: error, meta: undefined };
 	}
 }

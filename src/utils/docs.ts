@@ -1,7 +1,6 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
-import { DOMAINS_SET } from "@/config/domains";
 
 export function setupDocumentation(app: OpenAPIHono<{ Bindings: Env }>) {
 	// OpenAPI Documentation
@@ -25,12 +24,6 @@ A simple and fast temporary email service that allows you to receive emails with
 - **Success responses** include \`success: true\` and a \`result\` field
 - **Error responses** include \`success: false\` and an \`error\` object
 - **Validation errors** include \`success: false\` and detailed error information
-
-## Supported Domains
-This API currently supports the following email domains:
-${`\n${Array.from(DOMAINS_SET)
-	.map((domain) => `- ${domain}`)
-	.join("\n")}`}
 
 **Repository**: [github.com/alikuxac/temp-mail](https://github.com/alikuxac/temp-mail)  
 **Issues**: [Report bugs or request features](https://github.com/alikuxac/temp-mail/issues)

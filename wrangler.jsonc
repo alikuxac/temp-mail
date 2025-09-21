@@ -31,12 +31,12 @@
 	],
 	"triggers": {
 		"crons": [
-			"0 */4 * * *"
+			"0 */4 * * *",
+			"0 0 * * *"
 		]
 	},
 	"vars": {
-		"TELEGRAM_LOG_ENABLE": false,
-		"HOURS_TO_DELETE_D1": 3
+		"HOURS_TO_DELETE_D1": 24
 	},
 	// "assets": { "directory": "./public/" },
 	/**

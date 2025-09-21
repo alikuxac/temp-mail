@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { DOMAINS_SET } from "@/config/domains";
+import { env } from "cloudflare:workers";
 import { ERR } from "@/utils/http";
 import { getDomain } from "@/utils/mail";
 
@@ -12,11 +12,9 @@ const validateDomain = async (c: Context, next: () => Promise<void>) => {
 	if (emailAddress) {
 		const domain = getDomain(emailAddress);
 
-		if (!DOMAINS_SET.has(domain)) {
+		if (env.DOMAIN !== domain) {
 			return c.json(
-				ERR("Domain not supported", "DomainError", {
-					supported_domains: Array.from(DOMAINS_SET),
-				}),
+				ERR("Domain not supported", "DomainError"),
 				404,
 			);
 		}

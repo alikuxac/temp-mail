@@ -1,7 +1,7 @@
 {
   "name": "temp-mail",
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "scripts": {
     "dev": "wrangler dev --remote",
     "deploy": "wrangler deploy --minify",
@@ -36,7 +36,6 @@
     "@types/html-to-text": "^9.0.4",
     "@types/node": "^24.4.0",
     "knip": "^5.63.1",
-    "telegram-bot-api-types": "^9.2.0",
     "typescript": "^5.9.2",
     "wrangler": "^4.36.0"
   },

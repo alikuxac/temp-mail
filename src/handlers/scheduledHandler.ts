@@ -2,7 +2,8 @@ import * as db from "@/database/d1";
 import * as kv from "@/database/kv";
 import { now } from "@/utils/helpers";
 import { logInfo } from "@/utils/logger";
-// import { sendMessage } from "@/utils/telegram";
+import { TempMailBot as bot } from "@/telegram/bot";
+import { getTop10Sender } from "@/services/schedule-service";
 
 /**
  * Cloudflare Scheduled Function
@@ -34,11 +35,10 @@ export async function handleDailyReport(
 	env: Env,
 	ctx: ExecutionContext,
 ) {
-	// const topSenders = await kv.getTopSenders(env.KV, 10);
+	const message = await getTop10Sender();
 
-	// const message = `*Top 10 Senders*\n\n${topSenders
-	// 	.map(({ name, count }) => `*${name}*: ${count}`)
-	// 	.join("\n")}`;
-
-	// ctx.waitUntil(sendMessage(message, env));
+	const adminLists = env.ADMIN_ID.split(',');
+	for (const admin of adminLists) {
+		ctx.waitUntil(bot.api.sendMessage(admin, message))
+	}
 }
