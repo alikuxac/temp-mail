@@ -1,24 +1,16 @@
-export const tmaModeDescription: { [key: string]: string } = {
-	test: "Test an email address",
-	whitelist: "Manage the white list",
-	blocklist: "Manage the block list",
-};
+import type { BotCommand } from "grammy/types";
 
-export const telegramCommands = [
+export const telegramCommands: BotCommand[] = [
 	{
 		command: "id",
 		description: "/id - Get your chat ID",
 	},
 	{
-		command: "test",
-		description: `/test - ${tmaModeDescription.test}`,
+		command: "new",
+		description: `Generate random email address`,
 	},
 	{
-		command: "whitelist",
-		description: `/whitelist - ${tmaModeDescription.whitelist}`,
-	},
-	{
-		command: "blocklist",
-		description: `/block - ${tmaModeDescription.blocklist}`,
+		command: "cleanup",
+		description: `Cleanup expired emails`,
 	},
 ] as const;
