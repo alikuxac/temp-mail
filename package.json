@@ -1,45 +1,35 @@
 {
   "name": "temp-mail",
-  "type": "module",
-  "version": "0.0.3",
+  "description": "Cloudflare Worker that acts as a temporary email inbox.",
   "scripts": {
-    "dev": "wrangler dev --remote",
-    "deploy": "wrangler deploy --minify",
-    "tail": "wrangler tail",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "db:create": "wrangler d1 create temp-mail-d1",
-    "db:tables": "wrangler d1 execute temp-mail-d1 --file ./sql/schema.sql --remote",
-    "db:indexes": "wrangler d1 execute temp-mail-d1 --file ./sql/indexes.sql --remote",
-    "kv:create": "wrangler kv namespace create temp-mail-kv --preview",
-    "lint": "biome lint ./src",
-    "lint:fix": "biome lint --write --unsafe ./src",
-    "format": "biome format --write ./src",
-    "format:check": "biome format ./src",
-    "check": "biome check ./src",
-    "check:fix": "biome check --write --unsafe ./src",
-    "tsc": "tsc --noEmit",
-    "knip": "knip"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write --unsafe .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check --write --unsafe ."
   },
-  "dependencies": {
-    "@hono/swagger-ui": "^0.5.2",
-    "@hono/zod-openapi": "^1.1.0",
-    "@hono/zod-validator": "^0.7.2",
-    "@paralleldrive/cuid2": "^2.2.2",
-    "@scalar/hono-api-reference": "^0.9.18",
-    "hono": "^4.9.7",
-    "html-to-text": "^9.0.5",
-    "postal-mime": "^2.4.4",
-    "zod": "^4.1.8"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alikuxac/temp-mail.git"
   },
+  "keywords": [],
+  "author": "Alikuxac <alikuxac.dev@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alikuxac/temp-mail/issues"
+  },
+  "homepage": "https://github.com/alikuxac/temp-mail#readme",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4",
-    "@types/html-to-text": "^9.0.4",
-    "@types/node": "^24.4.0",
-    "knip": "^5.63.1",
-    "typescript": "^5.9.2",
-    "wrangler": "^4.36.0"
+    "@biomejs/biome": "2.2.4",
+    "turbo": "^2.5.6"
   },
-  "peerDependencies": {
-    "typescript": "^5"
-  }
+  "packageManager": "npm@11.6.0"
 }

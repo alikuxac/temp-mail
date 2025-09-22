@@ -1,5 +1,4 @@
 import * as db from "@/database/d1";
-import * as kv from "@/database/kv";
 import { now } from "@/utils/helpers";
 import { logInfo } from "@/utils/logger";
 import { TempMailBot as bot } from "@/telegram/bot";
@@ -12,7 +11,7 @@ import { getTop10Sender } from "@/services/schedule-service";
 export async function handleScheduled(
 	_event: ScheduledEvent,
 	env: Env,
-	ctx: ExecutionContext,
+	_ctx: ExecutionContext,
 ) {
 	const cutoffTimestamp = now() - env.HOURS_TO_DELETE_D1 * 60 * 60;
 

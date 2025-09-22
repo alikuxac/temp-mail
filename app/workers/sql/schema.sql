@@ -6,5 +6,5 @@ CREATE TABLE IF NOT EXISTS emails (
     received_at INTEGER NOT NULL,
     html_content TEXT,
     text_content TEXT,
-    is_forever BOOLEAN DEFAULT FALSE
+    is_read BOOLEAN DEFAULT FALSE
 );

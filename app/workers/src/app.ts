@@ -4,6 +4,7 @@ import { setupDocumentation } from "@/utils/docs";
 import { logError } from "@/utils/logger";
 import corsMiddleware from "./middlewares/cors";
 import healthRoutes from "./routes/healthRoutes";
+import telegramRoutes from "./routes/telegramRoutes";
 import { ERR } from "./utils/http";
 
 const app = new OpenAPIHono<{ Bindings: Env }>();
@@ -20,6 +21,8 @@ app.onError((err, c) => {
 // --- Routes ---
 // Email Routes
 app.route("/", emailRoutes);
+// Telegram Routes
+app.route("/", telegramRoutes);
 // Health Check
 app.route("/", healthRoutes);
 

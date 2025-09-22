@@ -1,0 +1,66 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+<<<<<<< HEAD
+<<<<<<< HEAD
+      "outputs": ["dist/**", ".wrangler/**"]
+=======
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**"]
+>>>>>>> b2c1ee7 (chore: Release version 0.1.0)
+=======
+      "outputs": ["dist/**", ".wrangler/**"]
+>>>>>>> 06b7c68 (fixup! chore: Release version 0.1.0)
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+<<<<<<< HEAD
+<<<<<<< HEAD
+    "format:check": {
+      "cache": false
+    },
+    "format": {
+      "cache": false
+    },
+    "lint:fix": {
+      "cache": false
+    },
+    "check:fix": {
+      "cache": false
+    },
+    "check": {
+=======
+    "//#format:check": {},
+    "//#format": {
+=======
+    "format:check": {
+>>>>>>> 254912c (fixup! fixup! chore: Release version 0.1.0)
+      "cache": false
+    },
+    "format": {
+      "cache": false
+    },
+<<<<<<< HEAD
+    "//#check:fix": {},
+    "//#check": {
+>>>>>>> b2c1ee7 (chore: Release version 0.1.0)
+=======
+    "lint:fix": {
+      "cache": false
+    },
+    "check:fix": {
+      "cache": false
+    },
+    "check": {
+>>>>>>> 254912c (fixup! fixup! chore: Release version 0.1.0)
+      "cache": false
+    }
+  }
+}
