@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { Composer } from 'grammy';
 import { Menu } from "@grammyjs/menu";
 import { CommandGroup } from '@grammyjs/commands';
-import { CustomContext } from '../types';
+import type { CustomContext } from '../types';
 import { generateUsername } from '@/utils/helpers';
 
 export const userCommands = new CommandGroup<CustomContext>();

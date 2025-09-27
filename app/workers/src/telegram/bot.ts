@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { commandNotFound, commands } from '@grammyjs/commands';
 import { Bot, GrammyError, HttpError } from 'grammy';
-import { CustomContext } from './types';
+import type { CustomContext } from './types';
 
 import { adminComposer, userComposer, commands as commandList } from './commands';
 

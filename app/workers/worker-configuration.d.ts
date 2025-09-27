@@ -344,8 +344,7 @@ declare const performance: Performance;
 declare const Cloudflare: Cloudflare;
 declare const origin: string;
 declare const navigator: Navigator;
-interface TestController {
-}
+type TestController = {}
 interface ExecutionContext<Props = unknown> {
     waitUntil(promise: Promise<any>): void;
     passThroughOnException(): void;
@@ -424,8 +423,7 @@ type DurableObjectLocationHint = "wnam" | "enam" | "sam" | "weur" | "eeur" | "ap
 interface DurableObjectNamespaceGetDurableObjectOptions {
     locationHint?: DurableObjectLocationHint;
 }
-interface DurableObjectClass<_T extends Rpc.DurableObjectBranded | undefined = undefined> {
-}
+type DurableObjectClass<_T extends Rpc.DurableObjectBranded | undefined = undefined> = {}
 interface DurableObjectState<Props = unknown> {
     waitUntil(promise: Promise<any>): void;
     readonly props: Props;
@@ -1481,11 +1479,11 @@ interface KVNamespace<Key extends string = string> {
     get<ExpectedValue = unknown>(key: Key, options?: KVNamespaceGetOptions<"json">): Promise<ExpectedValue | null>;
     get(key: Key, options?: KVNamespaceGetOptions<"arrayBuffer">): Promise<ArrayBuffer | null>;
     get(key: Key, options?: KVNamespaceGetOptions<"stream">): Promise<ReadableStream | null>;
-    get(key: Array<Key>, type: "text"): Promise<Map<string, string | null>>;
-    get<ExpectedValue = unknown>(key: Array<Key>, type: "json"): Promise<Map<string, ExpectedValue | null>>;
-    get(key: Array<Key>, options?: Partial<KVNamespaceGetOptions<undefined>>): Promise<Map<string, string | null>>;
-    get(key: Array<Key>, options?: KVNamespaceGetOptions<"text">): Promise<Map<string, string | null>>;
-    get<ExpectedValue = unknown>(key: Array<Key>, options?: KVNamespaceGetOptions<"json">): Promise<Map<string, ExpectedValue | null>>;
+    get(key: Key[], type: "text"): Promise<Map<string, string | null>>;
+    get<ExpectedValue = unknown>(key: Key[], type: "json"): Promise<Map<string, ExpectedValue | null>>;
+    get(key: Key[], options?: Partial<KVNamespaceGetOptions<undefined>>): Promise<Map<string, string | null>>;
+    get(key: Key[], options?: KVNamespaceGetOptions<"text">): Promise<Map<string, string | null>>;
+    get<ExpectedValue = unknown>(key: Key[], options?: KVNamespaceGetOptions<"json">): Promise<Map<string, ExpectedValue | null>>;
     list<Metadata = unknown>(options?: KVNamespaceListOptions): Promise<KVNamespaceListResult<Metadata, Key>>;
     put(key: Key, value: string | ArrayBuffer | ArrayBufferView | ReadableStream, options?: KVNamespacePutOptions): Promise<void>;
     getWithMetadata<Metadata = unknown>(key: Key, options?: Partial<KVNamespaceGetOptions<undefined>>): Promise<KVNamespaceGetWithMetadataResult<string, Metadata>>;
@@ -1497,11 +1495,11 @@ interface KVNamespace<Key extends string = string> {
     getWithMetadata<ExpectedValue = unknown, Metadata = unknown>(key: Key, options: KVNamespaceGetOptions<"json">): Promise<KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>;
     getWithMetadata<Metadata = unknown>(key: Key, options: KVNamespaceGetOptions<"arrayBuffer">): Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer, Metadata>>;
     getWithMetadata<Metadata = unknown>(key: Key, options: KVNamespaceGetOptions<"stream">): Promise<KVNamespaceGetWithMetadataResult<ReadableStream, Metadata>>;
-    getWithMetadata<Metadata = unknown>(key: Array<Key>, type: "text"): Promise<Map<string, KVNamespaceGetWithMetadataResult<string, Metadata>>>;
-    getWithMetadata<ExpectedValue = unknown, Metadata = unknown>(key: Array<Key>, type: "json"): Promise<Map<string, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>>;
-    getWithMetadata<Metadata = unknown>(key: Array<Key>, options?: Partial<KVNamespaceGetOptions<undefined>>): Promise<Map<string, KVNamespaceGetWithMetadataResult<string, Metadata>>>;
-    getWithMetadata<Metadata = unknown>(key: Array<Key>, options?: KVNamespaceGetOptions<"text">): Promise<Map<string, KVNamespaceGetWithMetadataResult<string, Metadata>>>;
-    getWithMetadata<ExpectedValue = unknown, Metadata = unknown>(key: Array<Key>, options?: KVNamespaceGetOptions<"json">): Promise<Map<string, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>>;
+    getWithMetadata<Metadata = unknown>(key: Key[], type: "text"): Promise<Map<string, KVNamespaceGetWithMetadataResult<string, Metadata>>>;
+    getWithMetadata<ExpectedValue = unknown, Metadata = unknown>(key: Key[], type: "json"): Promise<Map<string, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>>;
+    getWithMetadata<Metadata = unknown>(key: Key[], options?: Partial<KVNamespaceGetOptions<undefined>>): Promise<Map<string, KVNamespaceGetWithMetadataResult<string, Metadata>>>;
+    getWithMetadata<Metadata = unknown>(key: Key[], options?: KVNamespaceGetOptions<"text">): Promise<Map<string, KVNamespaceGetWithMetadataResult<string, Metadata>>>;
+    getWithMetadata<ExpectedValue = unknown, Metadata = unknown>(key: Key[], options?: KVNamespaceGetOptions<"json">): Promise<Map<string, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>>;
     delete(key: Key): Promise<void>;
 }
 interface KVNamespaceListOptions {
@@ -2053,8 +2051,7 @@ interface TraceItem {
 interface TraceItemAlarmEventInfo {
     readonly scheduledTime: Date;
 }
-interface TraceItemCustomEventInfo {
-}
+type TraceItemCustomEventInfo = {}
 interface TraceItemScheduledEventInfo {
     readonly scheduledTime: number;
     readonly cron: string;
@@ -6408,8 +6405,7 @@ declare abstract class D1PreparedStatement {
 // but this will ensure type checking on older versions still passes.
 // TypeScript's interface merging will ensure our empty interface is effectively
 // ignored when `Disposable` is included in the standard lib.
-interface Disposable {
-}
+type Disposable = {}
 /**
  * An email message that can be sent from a Worker.
  */
@@ -6933,10 +6929,10 @@ declare namespace Rpc {
     }
     export type Stub<T extends Stubable> = Provider<T> & StubBase<T>;
     // This represents all the types that can be sent as-is over an RPC boundary
-    type BaseType = void | undefined | null | boolean | number | bigint | string | TypedArray | ArrayBuffer | DataView | Date | Error | RegExp | ReadableStream<Uint8Array> | WritableStream<Uint8Array> | Request | Response | Headers;
+    type BaseType = undefined | undefined | null | boolean | number | bigint | string | TypedArray | ArrayBuffer | DataView | Date | Error | RegExp | ReadableStream<Uint8Array> | WritableStream<Uint8Array> | Request | Response | Headers;
     // Recursively rewrite all `Stubable` types with `Stub`s
     // prettier-ignore
-    type Stubify<T> = T extends Stubable ? Stub<T> : T extends Map<infer K, infer V> ? Map<Stubify<K>, Stubify<V>> : T extends Set<infer V> ? Set<Stubify<V>> : T extends Array<infer V> ? Array<Stubify<V>> : T extends ReadonlyArray<infer V> ? ReadonlyArray<Stubify<V>> : T extends BaseType ? T : T extends {
+    type Stubify<T> = T extends Stubable ? Stub<T> : T extends Map<infer K, infer V> ? Map<Stubify<K>, Stubify<V>> : T extends Set<infer V> ? Set<Stubify<V>> : T extends Array<infer V> ? Stubify<V>[] : T extends ReadonlyArray<infer V> ? readonly Stubify<V>[] : T extends BaseType ? T : T extends {
         [key: string | number]: any;
     } ? {
         [K in keyof T]: Stubify<T[K]>;
@@ -6945,7 +6941,7 @@ declare namespace Rpc {
     // Note we use `StubBase` instead of `Stub` here to avoid circular dependencies:
     // `Stub` depends on `Provider`, which depends on `Unstubify`, which would depend on `Stub`.
     // prettier-ignore
-    type Unstubify<T> = T extends StubBase<infer V> ? V : T extends Map<infer K, infer V> ? Map<Unstubify<K>, Unstubify<V>> : T extends Set<infer V> ? Set<Unstubify<V>> : T extends Array<infer V> ? Array<Unstubify<V>> : T extends ReadonlyArray<infer V> ? ReadonlyArray<Unstubify<V>> : T extends BaseType ? T : T extends {
+    type Unstubify<T> = T extends StubBase<infer V> ? V : T extends Map<infer K, infer V> ? Map<Unstubify<K>, Unstubify<V>> : T extends Set<infer V> ? Set<Unstubify<V>> : T extends Array<infer V> ? Unstubify<V>[] : T extends ReadonlyArray<infer V> ? readonly Unstubify<V>[] : T extends BaseType ? T : T extends {
         [key: string | number]: unknown;
     } ? {
         [K in keyof T]: Unstubify<T[K]>;
@@ -6989,8 +6985,7 @@ declare namespace Cloudflare {
     // will merge all declarations.
     //
     // You can use `wrangler types` to generate the `Env` type automatically.
-    interface Env {
-    }
+    type Env = {}
     // Project-specific parameters used to inform types.
     //
     // This interface is, again, intended to be declared in project-specific files, and then that
@@ -7009,8 +7004,7 @@ declare namespace Cloudflare {
     //     }
     //
     // You can use `wrangler types` to generate `GlobalProps` automatically.
-    interface GlobalProps {
-    }
+    type GlobalProps = {}
     // Evaluates to the type of a property in GlobalProps, defaulting to `Default` if it is not
     // present.
     type GlobalProp<K extends string, Default> = K extends keyof GlobalProps ? GlobalProps[K] : Default;

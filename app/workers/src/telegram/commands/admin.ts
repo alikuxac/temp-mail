@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { CommandGroup } from '@grammyjs/commands';
 import { Composer } from 'grammy';
-import { CustomContext } from '../types';
+import type { CustomContext } from '../types';
 
 import * as db from "@/database/d1";
 import { now } from '@/utils/helpers';
