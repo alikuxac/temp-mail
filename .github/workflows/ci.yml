@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'app/workers/**'
 
 jobs:
   deploy:
@@ -23,9 +25,11 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
+        working-directory: app/workers 
         run: npm ci
 
       - name: Deploy
+        working-directory: app/workers
         run: npm run deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
