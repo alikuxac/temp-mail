@@ -12,16 +12,19 @@
       "cache": false,
       "persistent": true
     },
-    "//#format:check": {},
-    "//#format": {
+    "format:check": {
       "cache": false
     },
-    "//#lint:fix": {},
-    "//#lint": {
+    "format": {
       "cache": false
     },
-    "//#check:fix": {},
-    "//#check": {
+    "lint:fix": {
+      "cache": false
+    },
+    "check:fix": {
+      "cache": false
+    },
+    "check": {
       "cache": false
     }
   }
