@@ -1,5 +1,3 @@
-
-
 /**
  * Get current timestamp in seconds
  */
@@ -8,5 +6,5 @@ export function now() {
 }
 
 export function generateUsername() {
-	return Math.random().toString(36).substring(2, 12);
+	return crypto.randomUUID().replace(/-/g, "").substring(0, 10);
 }

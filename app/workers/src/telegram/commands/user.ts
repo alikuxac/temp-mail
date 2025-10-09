@@ -14,7 +14,7 @@ newGenerateMenu
   .text('🔃 Re-generate', async (ctx) => {
     const newUsername = generateUsername();
     const text = `New email address generated: \`${newUsername}@${env.DOMAIN}\``;
-    return await ctx.editMessageText(text, { parse_mode: 'MarkdownV2' });
+    return await ctx.editMessageText(text, { parse_mode: 'MarkdownV2', reply_markup: newGenerateMenu });
   }).row()
   .text('🗑️ Delete', async (ctx) => { await ctx.deleteMessage(); })
 
