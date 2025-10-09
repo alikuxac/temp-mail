@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          path: app/worker
+          sparse-checkout: app/workers
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
