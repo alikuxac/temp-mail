@@ -5,7 +5,10 @@ on:
     branches:
       - master
     paths:
+      # Bộ lọc mới: Kích hoạt khi code worker hoặc dependencies gốc thay đổi
       - 'app/workers/**'
+      - 'package.json' 
+      - 'package-lock.json' 
   workflow_dispatch:
 
 jobs:
@@ -13,11 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     name: Deploy
+    if: github.event_name != 'workflow_dispatch' || github.actor == 'alikuxac'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: app/workers
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,13 +27,12 @@ jobs:
           node-version: "latest"
           cache: "npm"
 
-      - name: Install dependencies
-        working-directory: app/workers 
-        run: npm ci
+      - name: Install Monorepo Dependencies
+        run: npm ci --silent 
 
-      - name: Deploy
+      - name: Deploy Worker (app/workers)
         working-directory: app/workers
-        run: npm run deploy
+        run: npm run deploy > /dev/null 2>&1
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}

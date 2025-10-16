@@ -1,6 +1,7 @@
 {
   "name": "temp-mail",
   "description": "Cloudflare Worker that acts as a temporary email inbox.",
+  "version": "0.1.3",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
