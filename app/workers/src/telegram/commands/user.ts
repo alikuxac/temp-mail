@@ -14,16 +14,9 @@ newGenerateMenu
   .text('🔃 Re-generate', async (ctx) => {
     const newUsername = generateUsername();
     const text = `New email address generated: \`${newUsername}@${env.DOMAIN}\``;
-<<<<<<< HEAD
-<<<<<<< HEAD
     return await ctx.editMessageText(text, { parse_mode: 'MarkdownV2', reply_markup: newGenerateMenu });
-=======
-    return await ctx.editMessageText(text, { parse_mode: 'MarkdownV2' });
->>>>>>> b2c1ee7 (chore: Release version 0.1.0)
-=======
-    return await ctx.editMessageText(text, { parse_mode: 'MarkdownV2', reply_markup: newGenerateMenu });
->>>>>>> 06b7c68 (fixup! chore: Release version 0.1.0)
-  }).row()
+  })
+  .row()
   .text('🗑️ Delete', async (ctx) => { await ctx.deleteMessage(); })
 
 // Commands
