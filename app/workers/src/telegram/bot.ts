@@ -16,9 +16,13 @@ TempMailBot.use(commands());
 TempMailBot.use(adminComposer);
 TempMailBot.use(userComposer);
 
-for (const command of commandList) {
-  await command.setCommands(TempMailBot);
+async function setCommands() {
+  for (const command of commandList) {
+    await command.setCommands(TempMailBot);
+  }
 }
+
+(async () => { await setCommands(); })
 
 TempMailBot.command('start', async (ctx) => {
   const text = `Welcome to Temp Mail TempMailBot`;

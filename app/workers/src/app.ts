@@ -12,12 +12,6 @@ const app = new OpenAPIHono<{ Bindings: Env }>();
 // --- Middlewares ---
 app.use(corsMiddleware);
 
-// --- Error handling ---
-app.onError((err, c) => {
-	logError(`Unhandled error: ${err.message}`, err);
-	return c.json(ERR(err.name, err.message), 500);
-});
-
 // --- Routes ---
 // Email Routes
 app.route("/", emailRoutes);
@@ -25,6 +19,12 @@ app.route("/", emailRoutes);
 app.route("/", telegramRoutes);
 // Health Check
 app.route("/", healthRoutes);
+
+// --- Error handling ---
+app.onError((err, c) => {
+	logError(`Unhandled error: ${err.message}`, err);
+	return c.json(ERR(err.name, err.message), 500);
+});
 
 // --- OpenAPI Documentation ---
 setupDocumentation(app);

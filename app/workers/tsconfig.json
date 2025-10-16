@@ -8,7 +8,6 @@
     "lib": [
       "ESNext"
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },

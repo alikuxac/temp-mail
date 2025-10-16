@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/alikuxac/temp-mail#readme",
   "workspaces": [
-    "apps/*",
+    "app/*",
     "packages/*"
   ],
   "devDependencies": {
