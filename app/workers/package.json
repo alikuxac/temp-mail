@@ -29,7 +29,7 @@
     "@paralleldrive/cuid2": "^2.2.2",
     "@scalar/hono-api-reference": "^0.9.18",
     "grammy": "^1.38.2",
-    "hono": "^4.9.7",
+    "hono": "^4.10.2",
     "html-to-text": "^9.0.5",
     "postal-mime": "^2.4.4",
     "zod": "^4.1.8"
