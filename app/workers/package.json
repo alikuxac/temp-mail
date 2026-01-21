@@ -41,7 +41,7 @@
     "@types/node": "^24.4.0",
     "knip": "^5.63.1",
     "typescript": "^5.9.2",
-    "wrangler": "^4.36.0"
+    "wrangler": "^4.59.1"
   },
   "peerDependencies": {
     "typescript": "^5"
