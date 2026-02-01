@@ -277,3 +277,39 @@ export async function deleteEmailAddress(db: D1Database, id: string) {
 		return { success: false, error: error, meta: undefined };
 	}
 }
+
+/**
+ * Get the latest email address created by a user
+ */
+export async function getLatestEmailByUserId(db: D1Database, userId: number) {
+	try {
+		const result = await db
+			.prepare("SELECT * FROM email_addresses WHERE user_id = ? ORDER BY created_at DESC LIMIT 1")
+			.bind(userId)
+			.first();
+
+		if (result) {
+			return { result: result as unknown as EmailAddress, error: undefined };
+		}
+		return { result: null, error: undefined };
+	} catch (e: unknown) {
+		const error = e instanceof Error ? e : new Error(String(e));
+		return { result: null, error: error };
+	}
+}
+
+/**
+ * Count active emails for a user
+ */
+export async function countEmailsByUserId(db: D1Database, userId: number) {
+	try {
+		const result = await db
+			.prepare("SELECT count(*) as count FROM email_addresses WHERE user_id = ?")
+			.bind(userId)
+			.first<{ count: number }>();
+		return { count: result?.count || 0, error: undefined };
+	} catch (e: unknown) {
+		const error = e instanceof Error ? e : new Error(String(e));
+		return { count: 0, error: error };
+	}
+}

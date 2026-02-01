@@ -5,6 +5,12 @@ import { CommandGroup } from '@grammyjs/commands';
 import type { CustomContext } from '../types';
 import { generateUsername } from '@/utils/helpers';
 import * as db from "@/database/d1";
+import type { EmailAddress } from "@/schemas/addresses/schema";
+import type { User } from "@/schemas/users/schema";
+
+const COOLDOWN_SECONDS = 10;
+const MAX_RETRIES = 3;
+const MAX_EMAILS_PER_USER = 5;
 
 export const userCommands = new CommandGroup<CustomContext>();
 
@@ -49,7 +55,7 @@ export async function pinEmail(ctx: CustomContext, emailId: string) {
     return await ctx.reply("❌ Email not found or expired.");
   }
 
-  const {} = await db.pinEmail(env.D1, emailId, !email);
+  const { } = await db.pinEmail(env.D1, emailId, !email);
   await showEmail(ctx, emailId);
 }
 
@@ -58,8 +64,68 @@ export const newGenerateMenu = new Menu('generated-email');
 
 newGenerateMenu
   .text('🔃 Re-generate', async (ctx) => {
-    const newUsername = generateUsername();
-    const text = `New email address generated: \`${newUsername}@${env.DOMAIN}\``;
+    if (!ctx.from) return await ctx.answerCallbackQuery("❌ User not found.");
+
+    const { DOMAIN, D1, ADMIN_ID } = env;
+
+    // Admin check
+    const adminList = (ADMIN_ID || "").split(',');
+    const isAdmin = adminList.includes(ctx.from.id.toString());
+
+    if (!isAdmin) {
+      // Limit check
+      const { count } = await db.countEmailsByUserId(D1, ctx.from.id);
+      if (count >= MAX_EMAILS_PER_USER) {
+        return await ctx.answerCallbackQuery(`❌ Limit reached (${MAX_EMAILS_PER_USER} emails). Please delete some first.`);
+      }
+
+      // Cooldown check
+      const { result: latestEmail } = await db.getLatestEmailByUserId(D1, ctx.from.id);
+      if (latestEmail) {
+        const now = Math.floor(Date.now() / 1000);
+        const diff = now - latestEmail.created_at;
+        if (diff < COOLDOWN_SECONDS) {
+          return await ctx.answerCallbackQuery(`⏳ Please wait ${COOLDOWN_SECONDS - diff}s.`);
+        }
+      }
+    }
+
+    const user: User = {
+      id: ctx.from.id,
+      username: ctx.from.username,
+      first_name: ctx.from.first_name,
+      last_name: ctx.from.last_name,
+      language_code: ctx.from.language_code,
+      created_at: Math.floor(Date.now() / 1000),
+    };
+    await db.createOrUpdateUser(D1, user);
+
+    let address = "";
+    let success = false;
+
+    // Retry loop for collision handling
+    for (let i = 0; i < MAX_RETRIES; i++) {
+      const newUsername = generateUsername();
+      address = `${newUsername}@${DOMAIN}`;
+      const emailData: EmailAddress = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        address,
+        created_at: Math.floor(Date.now() / 1000),
+      };
+      const result = await db.createEmailAddress(D1, emailData);
+      if (result.success) {
+        success = true;
+        break;
+      }
+      // If failed, likely unique constraint, try again
+    }
+
+    if (!success) {
+      return await ctx.answerCallbackQuery("❌ Failed to generate unique email. Please try again.");
+    }
+
+    const text = `New email address generated: \`${address}\``;
     return await ctx.editMessageText(text, { parse_mode: 'MarkdownV2', reply_markup: newGenerateMenu });
   })
   .row()
@@ -74,9 +140,66 @@ userCommands.command('id', 'Show chat ID', async (ctx) => {
 });
 
 userCommands.command('new', 'Generate random email address', async (ctx) => {
-  const { DOMAIN } = env;
-  const randomUsername = generateUsername();
-  const text = `New email address generated: \`${randomUsername}@${DOMAIN}\``;
+  if (!ctx.from) return await ctx.reply("❌ User not found.");
+
+  const { DOMAIN, D1, ADMIN_ID } = env;
+
+  // Admin check
+  const adminList = (ADMIN_ID || "").split(',');
+  const isAdmin = adminList.includes(ctx.from.id.toString());
+
+  if (!isAdmin) {
+    // Limit check
+    const { count } = await db.countEmailsByUserId(D1, ctx.from.id);
+    if (count >= MAX_EMAILS_PER_USER) {
+      return await ctx.reply(`❌ Limit reached (${MAX_EMAILS_PER_USER} emails). Please delete some first.`);
+    }
+
+    // Cooldown check
+    const { result: latestEmail } = await db.getLatestEmailByUserId(D1, ctx.from.id);
+    if (latestEmail) {
+      const now = Math.floor(Date.now() / 1000);
+      const diff = now - latestEmail.created_at;
+      if (diff < COOLDOWN_SECONDS) {
+        return await ctx.reply(`⏳ Please wait ${COOLDOWN_SECONDS - diff}s before generating a new email.`);
+      }
+    }
+  }
+
+  const user: User = {
+    id: ctx.from.id,
+    username: ctx.from.username,
+    first_name: ctx.from.first_name,
+    last_name: ctx.from.last_name,
+    language_code: ctx.from.language_code,
+    created_at: Math.floor(Date.now() / 1000),
+  };
+  await db.createOrUpdateUser(D1, user);
+
+  let address = "";
+  let success = false;
+
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    const randomUsername = generateUsername();
+    address = `${randomUsername}@${DOMAIN}`;
+    const emailData: EmailAddress = {
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      address,
+      created_at: Math.floor(Date.now() / 1000),
+    };
+    const result = await db.createEmailAddress(D1, emailData);
+    if (result.success) {
+      success = true;
+      break;
+    }
+  }
+
+  if (!success) {
+    return await ctx.reply("❌ Failed to generate unique email. Please try again.");
+  }
+
+  const text = `New email address generated: \`${address}\``;
   return await ctx.reply(text, { parse_mode: 'MarkdownV2', reply_markup: newGenerateMenu });
 });
 
