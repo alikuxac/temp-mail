@@ -6,6 +6,8 @@ import { emailSchema } from "@/schemas/emails/schema";
 import { now } from "@/utils/helpers";
 import { processEmailContent } from "@/utils/mail";
 import { PerformanceTimer } from "@/utils/performance";
+import { TempMailBot } from "@/telegram/bot";
+import { InlineKeyboard } from "grammy";
 
 /**
  * Cloudflare email router handler - optimized version
@@ -37,7 +39,7 @@ export async function handleEmail(
 		const attachments = email.attachments || [];
 		if (attachments.length > 0) {
 			timer.end();
-			message.setReject('Attachments are not supported.');	
+			message.setReject('Attachments are not supported.');
 			return;
 		}
 
@@ -56,6 +58,27 @@ export async function handleEmail(
 
 		if (!success) {
 			throw new Error(`Failed to insert email: ${error}`);
+		}
+
+		const notificationMsg =
+			`📧 *New Email Received!*
+
+👤 *From:* \`${emailData.from_address}\`
+nb *To:* \`${emailData.to_address}\`
+📝 *Subject:* ${emailData.subject || "(No Subject)"}
+
+_Check your inbox or Mini App for details._`;
+
+		const keyboard = new InlineKeyboard().text('📖 Read Content', `read_email:${emailData.id}`)
+
+		const adminIds = env.ADMIN_ID.split(',');
+		for (const adminId of adminIds) {
+			ctx.waitUntil(
+				TempMailBot.api.sendMessage(adminId, notificationMsg, {
+					parse_mode: "Markdown",
+					reply_markup: keyboard
+				}).catch(e => console.error(`Failed to send Telegram notification to ${adminId}:`, e))
+			);
 		}
 
 		timer.end(); // Log processing time
