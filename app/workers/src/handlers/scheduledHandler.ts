@@ -13,15 +13,21 @@ export async function handleScheduled(
 	env: Env,
 	_ctx: ExecutionContext,
 ) {
-	const cutoffTimestamp = now() - env.HOURS_TO_DELETE_D1 * 60 * 60;
+	const currentTimestamp = now();
+	const cutoffTimestamp = currentTimestamp - env.HOURS_TO_DELETE_D1 * 60 * 60;
 
-	const { success, error } = await db.deleteOldEmails(env.D1, cutoffTimestamp);
+	// Cleanup old emails
+	const emailCleanup = await db.deleteOldEmails(env.D1, cutoffTimestamp);
+	
+	// Cleanup expired addresses
+	const addressCleanup = await db.deleteExpiredEmailAddresses(env.D1, currentTimestamp);
 
-	if (success) {
-		logInfo("Email cleanup completed successfully.");
-		// ctx.waitUntil(sendMessage("Email cleanup completed successfully.", env));
+	if (emailCleanup.success && addressCleanup.success) {
+		logInfo("Database cleanup completed successfully (Emails & Addresses).");
 	} else {
-		throw new Error(`Email cleanup failed: ${error}`);
+		if (!emailCleanup.success) logInfo(`Email cleanup failed: ${emailCleanup.error}`);
+		if (!addressCleanup.success) logInfo(`Address cleanup failed: ${addressCleanup.error}`);
+		throw new Error("Cleanup failed for one or more tables.");
 	}
 }
 
@@ -38,6 +44,8 @@ export async function handleDailyReport(
 
 	const adminLists = env.ADMIN_ID.split(',');
 	for (const admin of adminLists) {
-		ctx.waitUntil(bot.api.sendMessage(admin, message))
+		ctx.waitUntil(bot.api.sendMessage(admin, message, {
+			parse_mode: "Markdown",
+		}))
 	}
 }

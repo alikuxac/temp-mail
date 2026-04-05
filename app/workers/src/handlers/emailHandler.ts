@@ -43,6 +43,22 @@ export async function handleEmail(
 			return;
 		}
 
+		// Check if recipient exists and is active
+		const { result: addr, error: addrError } = await db.getEmailAddressByAddress(env.D1, message.to);
+		
+		if (addrError || !addr) {
+			timer.end();
+			message.setReject('Invalid recipient.');
+			return;
+		}
+
+		// Check expiration
+		if (addr.expires_at && addr.expires_at < now()) {
+			timer.end();
+			message.setReject('Address has expired.');
+			return;
+		}
+
 		const emailData = emailSchema.parse({
 			id: emailId,
 			from_address: message.from,
@@ -64,20 +80,30 @@ export async function handleEmail(
 			`📧 *New Email Received!*
 
 👤 *From:* \`${emailData.from_address}\`
-nb *To:* \`${emailData.to_address}\`
+👤 *To:* \`${emailData.to_address}\`
 📝 *Subject:* ${emailData.subject || "(No Subject)"}
 
 _Check your inbox or Mini App for details._`;
 
 		const keyboard = new InlineKeyboard().text('📖 Read Content', `read_email:${emailData.id}`)
 
+		// Notify the owner
+		ctx.waitUntil(
+			TempMailBot.api.sendMessage(addr.user_id, notificationMsg, {
+				parse_mode: "Markdown",
+				reply_markup: keyboard
+			}).catch(e => console.error(`Failed to send Telegram notification to user ${addr.user_id}:`, e))
+		);
+
+		// Also notify admins if needed (optional, keeping original behavior for now but targeting specific users)
 		const adminIds = env.ADMIN_ID.split(',');
 		for (const adminId of adminIds) {
+			if (parseInt(adminId) === addr.user_id) continue; // Already notified
 			ctx.waitUntil(
 				TempMailBot.api.sendMessage(adminId, notificationMsg, {
 					parse_mode: "Markdown",
 					reply_markup: keyboard
-				}).catch(e => console.error(`Failed to send Telegram notification to ${adminId}:`, e))
+				}).catch(e => console.error(`Failed to send Telegram notification to admin ${adminId}:`, e))
 			);
 		}
 

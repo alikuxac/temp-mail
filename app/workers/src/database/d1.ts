@@ -243,6 +243,26 @@ export async function getEmailAddressesByUserId(db: D1Database, userId: number) 
 }
 
 /**
+ * Get Email Address by ID
+ */
+export async function getEmailAddressById(db: D1Database, id: string) {
+	try {
+		const result = await db
+			.prepare("SELECT * FROM email_addresses WHERE id = ?")
+			.bind(id)
+			.first();
+
+		if (result) {
+			return { result: result as unknown as EmailAddress, error: undefined };
+		}
+		return { result: null, error: undefined };
+	} catch (e: unknown) {
+		const error = e instanceof Error ? e : new Error(String(e));
+		return { result: null, error: error };
+	}
+}
+
+/**
  * Get Email Address Object by address string
  */
 export async function getEmailAddressByAddress(db: D1Database, address: string) {
@@ -311,5 +331,36 @@ export async function countEmailsByUserId(db: D1Database, userId: number) {
 	} catch (e: unknown) {
 		const error = e instanceof Error ? e : new Error(String(e));
 		return { count: 0, error: error };
+	}
+}
+
+/**
+ * Get all active email addresses with paging
+ */
+export async function getAllEmailAddresses(db: D1Database, limit = 50, offset = 0) {
+	try {
+		const { results } = await db
+			.prepare("SELECT * FROM email_addresses ORDER BY created_at DESC LIMIT ? OFFSET ?")
+			.bind(limit, offset)
+			.all();
+		return { results: results as unknown as EmailAddress[], error: undefined };
+	} catch (e: unknown) {
+		const error = e instanceof Error ? e : new Error(String(e));
+		return { results: [], error: error };
+	}
+}
+/**
+ * Delete expired email addresses
+ */
+export async function deleteExpiredEmailAddresses(db: D1Database, timestamp: number) {
+	try {
+		const { success, error, meta } = await db
+			.prepare("DELETE FROM email_addresses WHERE expires_at IS NOT NULL AND expires_at < ?")
+			.bind(timestamp)
+			.run();
+		return { success, error, meta };
+	} catch (e: unknown) {
+		const error = e instanceof Error ? e : new Error(String(e));
+		return { success: false, error: error, meta: undefined };
 	}
 }
