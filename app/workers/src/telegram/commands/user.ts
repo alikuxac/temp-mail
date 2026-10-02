@@ -87,7 +87,10 @@ newGenerateMenu
       language_code: ctx.from.language_code,
       created_at: Math.floor(Date.now() / 1000),
     };
-    await db.createOrUpdateUser(D1, user);
+    const userRes = await db.createOrUpdateUser(D1, user);
+    if (!userRes.success) {
+      return await ctx.answerCallbackQuery("❌ Database error: Could not record user data.");
+    }
 
     let address = "";
     let success = false;
@@ -163,7 +166,11 @@ userCommands.command('new', 'Generate random email address', async (ctx) => {
     language_code: ctx.from.language_code,
     created_at: Math.floor(Date.now() / 1000),
   };
-  await db.createOrUpdateUser(D1, user);
+  const userRes = await db.createOrUpdateUser(D1, user);
+  if (!userRes.success) {
+    return await ctx.reply("❌ Database error: Could not record user data.", { parse_mode: "Markdown" });
+  }
+
 
   let address = "";
   let success = false;
@@ -245,7 +252,7 @@ ${addr.expires_at ? `⌛ *Expires:* ${new Date(addr.expires_at * 1000).toLocaleS
 userComposer.callbackQuery("list_my_addresses", async (ctx) => {
   if (!ctx.from) return;
   const { results } = await db.getEmailAddressesByUserId(env.D1, ctx.from.id);
-  
+
   const text = `📋 *Your Email Addresses* (${results.length}/${MAX_EMAILS_PER_USER})`;
   const keyboard = new InlineKeyboard();
   for (const email of results) {
@@ -289,7 +296,7 @@ userComposer.callbackQuery(/^view_address_info_by_addr:(.+)$/, async (ctx) => {
   const address = ctx.match[1];
   const { result: addr } = await db.getEmailAddressByAddress(env.D1, address);
   if (!addr) return await ctx.answerCallbackQuery("❌ Address not found.");
-  
+
   const text = `📍 *Address:* \`${addr.address}\`
 📅 *Created:* ${new Date(addr.created_at * 1000).toLocaleString()}
 `;

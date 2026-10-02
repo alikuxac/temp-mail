@@ -170,10 +170,10 @@ export async function createOrUpdateUser(db: D1Database, user: User) {
 			)
 			.bind(
 				user.id,
-				user.username,
-				user.first_name,
-				user.last_name,
-				user.language_code,
+				user.username ?? null,
+				user.first_name ?? null,
+				user.last_name ?? null,
+				user.language_code ?? null,
 				user.created_at,
 			)
 			.run();
@@ -216,7 +216,7 @@ export async function createEmailAddress(db: D1Database, emailAddress: EmailAddr
 				emailAddress.user_id,
 				emailAddress.address,
 				emailAddress.created_at,
-				emailAddress.expires_at,
+				emailAddress.expires_at ?? null,
 			)
 			.run();
 		return { success, error, meta };
