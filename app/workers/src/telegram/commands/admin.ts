@@ -66,7 +66,7 @@ export const adminComposer = new Composer<CustomContext>();
 
 adminComposer.use(async (ctx, next) => {
   const { ADMIN_ID } = env;
-  const adminList = ADMIN_ID.split(',');
+  const adminList = (ADMIN_ID || "").split(',');
   if (ctx.from?.id && !adminList.includes(ctx.from?.id.toString())) {
     return await ctx.reply(`❌ You don't have enough permission to run command.`, { parse_mode: "Markdown" })
   }
