@@ -1,0 +1,23 @@
+{
+	"name": "@temp-mail/shared-types",
+	"version": "0.1.0",
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"import": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"build": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@hono/zod-openapi": "^1.6.3",
+		"zod": "^4.6.5"
+	},
+	"devDependencies": {
+		"typescript": "^7.0.2"
+	}
+}

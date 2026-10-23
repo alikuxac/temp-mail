@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ESNext"
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@temp-mail/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@temp-mail/shared-types/*": ["../../packages/shared-types/src/*"]
+    },
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "types": [
+        "./worker-configuration.d.ts",
+        "node"
+    ]
+  },
+}

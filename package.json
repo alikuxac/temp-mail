@@ -1,7 +1,7 @@
 {
   "name": "temp-mail",
   "description": "Cloudflare Worker that acts as a temporary email inbox.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -18,7 +18,7 @@
     "url": "git+https://github.com/alikuxac/temp-mail.git"
   },
   "keywords": [],
-  "author": "Alikuxac <alikuxac.dev@gmail.com>",
+  "author": "Alikuxac <contact@alikuxac.xyz>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/alikuxac/temp-mail/issues"
@@ -26,6 +26,7 @@
   "homepage": "https://github.com/alikuxac/temp-mail#readme",
   "workspaces": [
     "app/*",
+    "apps/*",
     "packages/*"
   ],
   "devDependencies": {

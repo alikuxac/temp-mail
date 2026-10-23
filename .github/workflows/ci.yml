@@ -2,12 +2,8 @@ name: Publish
 
 on:
   push:
-    branches:
-      - master
-    paths:
-      - 'app/workers/**'
-      - 'package.json' 
-      - 'package-lock.json' 
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:

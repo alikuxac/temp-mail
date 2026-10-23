@@ -1,0 +1,115 @@
+import { createId } from "@paralleldrive/cuid2";
+import PostalMime from "postal-mime";
+import * as db from "@/database/d1";
+import { updateSenderStats } from "@/database/kv";
+import { emailSchema } from "@temp-mail/shared-types";
+import { now } from "@/utils/helpers";
+import { processEmailContent } from "@/utils/mail";
+import { PerformanceTimer } from "@/utils/performance";
+import { TempMailBot } from "@/telegram/bot";
+import { InlineKeyboard } from "grammy";
+
+/**
+ * Cloudflare email router handler - optimized version
+ */
+export async function handleEmail(
+	message: ForwardableEmailMessage,
+	env: Env,
+	ctx: ExecutionContext,
+) {
+	try {
+		const timer = new PerformanceTimer("email-processing");
+		const emailId = createId();
+		const email = await PostalMime.parse(message.raw);
+
+		// Process email content
+		const { htmlContent, textContent } = processEmailContent(
+			email.html ?? null,
+			email.text ?? null,
+		);
+
+		// Update sender stats
+		ctx.waitUntil(
+			updateSenderStats(env.KV, message.from).catch((error) => {
+				console.error("Failed to update sender stats:", error);
+			}),
+		);
+
+		// Check if there are attachments
+		const attachments = email.attachments || [];
+		if (attachments.length > 0) {
+			timer.end();
+			message.setReject('Attachments are not supported.');
+			return;
+		}
+
+		// Check if recipient exists and is active
+		const { result: addr, error: addrError } = await db.getEmailAddressByAddress(env.D1, message.to);
+		
+		if (addrError || !addr) {
+			timer.end();
+			message.setReject('Invalid recipient.');
+			return;
+		}
+
+		// Check expiration
+		if (addr.expires_at && addr.expires_at < now()) {
+			timer.end();
+			message.setReject('Address has expired.');
+			return;
+		}
+
+		const emailData = emailSchema.parse({
+			id: emailId,
+			from_address: message.from,
+			to_address: message.to,
+			subject: email.subject || null,
+			received_at: now(),
+			html_content: htmlContent,
+			text_content: textContent,
+		});
+
+		// Insert email
+		const { success, error } = await db.insertEmail(env.D1, emailData);
+
+		if (!success) {
+			throw new Error(`Failed to insert email: ${error}`);
+		}
+
+		const notificationMsg =
+			`📧 *New Email Received!*
+
+👤 *From:* \`${emailData.from_address}\`
+👤 *To:* \`${emailData.to_address}\`
+📝 *Subject:* ${emailData.subject || "(No Subject)"}
+
+_Check your inbox or Mini App for details._`;
+
+		const keyboard = new InlineKeyboard().text('📖 Read Content', `read_email:${emailData.id}`)
+
+		// Notify the owner
+		ctx.waitUntil(
+			TempMailBot.api.sendMessage(addr.user_id, notificationMsg, {
+				parse_mode: "Markdown",
+				reply_markup: keyboard
+			}).catch(e => console.error(`Failed to send Telegram notification to user ${addr.user_id}:`, e))
+		);
+
+		// Also notify admins if needed (optional, keeping original behavior for now but targeting specific users)
+		const adminIds = env.ADMIN_ID.split(',');
+		for (const adminId of adminIds) {
+			if (parseInt(adminId) === addr.user_id) continue; // Already notified
+			ctx.waitUntil(
+				TempMailBot.api.sendMessage(adminId, notificationMsg, {
+					parse_mode: "Markdown",
+					reply_markup: keyboard
+				}).catch(e => console.error(`Failed to send Telegram notification to admin ${adminId}:`, e))
+			);
+		}
+
+		timer.end(); // Log processing time
+	} catch (error) {
+		console.error("Failed to process email:", error);
+		throw error;
+	}
+}
