@@ -7,3 +7,9 @@ CREATE INDEX IF NOT EXISTS idx_emails_received_at ON emails (received_at DESC);
 
 -- Index for cleanup operations (delete old emails)
 CREATE INDEX IF NOT EXISTS idx_emails_cleanup ON emails (received_at) WHERE received_at IS NOT NULL;
+
+-- Discord Activity identity lookups
+CREATE INDEX IF NOT EXISTS idx_discord_user_links_user_id ON discord_user_links(user_id);
+
+-- Telegram notification target lookup
+CREATE INDEX IF NOT EXISTS idx_users_telegram_user_id ON users (telegram_user_id);

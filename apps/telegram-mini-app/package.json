@@ -1,14 +1,16 @@
 {
 	"name": "@temp-mail/telegram-mini-app",
-	"version": "0.1.0",
+	"version": "0.3.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc --noEmit && vite build",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"deploy": "wrangler pages deploy dist --project-name=temp-mail-mini-app"
 	},
 	"dependencies": {
+		"@discord/embedded-app-sdk": "^2.1.0",
 		"@temp-mail/shared-types": "*",
 		"lucide-react": "^1.16.0",
 		"react": "^19.0.0",

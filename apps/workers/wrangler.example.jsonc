@@ -1,0 +1,55 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "temp-mail",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-07-15",
+	"observability": {
+		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "D1",
+			"database_name": "temp-mail-d1",
+			"database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "KV",
+			"id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID",
+			"preview_id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "ATTACHMENTS_BUCKET",
+			"bucket_name": "temp-mail-attachments"
+		}
+	],
+	"ai": {
+		"binding": "AI"
+	},
+	"triggers": {
+		"crons": ["0 */4 * * *", "0 0 * * *"]
+	},
+	"vars": {
+		"HOURS_TO_DELETE_D1": 72,
+		"DEFAULT_CLEANUP_TTL_HOURS": 72,
+		"ENVIRONMENT": "production",
+		"MAX_ADDRESSES_PER_USER": 3,
+		"RATE_LIMIT_SECONDS": 60,
+		"TELEGRAM_AUTH_MODE": "strict",
+		"ALLOWED_DISCORD_USER_IDS": "",
+		"ALLOWED_DISCORD_GUILD_IDS": "",
+		"DISCORD_ALLOW_INSTALLER": false,
+		"DISCORD_ALLOWED_ORIGINS": "",
+		"MINI_APP_DISCORD_PROVIDER": true,
+		"MAX_DAILY_AI_SUMMARIES": 150,
+		"AI_PROVIDER": "",
+		"AI_MODEL": "",
+		"AI_BASE_URL": "",
+		"AI_MAX_TOKENS": 100,
+		"AI_TEMPERATURE": 0.3,
+		"BLOCK_RULES_SCOPE": "global"
+	}
+}

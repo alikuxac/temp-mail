@@ -17,7 +17,8 @@ node_modules/
 
 # env
 .env
-.env.production
+.env.*
+!.env.example
 .dev.vars
 
 # logs
@@ -31,6 +32,22 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# local deployment notes (never commit)
+DEPLOY_CHECKLIST.local.md
+*.local.md
+
+# wrangler config holds account-specific ids (commit the .example instead)
+apps/workers/wrangler.jsonc
+
+# Kilo agent state / worktrees (local only, may embed the wrangler config)
+.kilo/
+
+# local debug / scratch artifacts
+error.txt
+prompt.md
+fix_conversations.py
+fix_conversations.bat
 
 # turbo
 .turbo

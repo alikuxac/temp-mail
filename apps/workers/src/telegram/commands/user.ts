@@ -1,224 +1,311 @@
-import { env } from 'cloudflare:workers';
-import { CallbackQueryContext, Composer, InlineKeyboard } from 'grammy';
+import { env } from "cloudflare:workers";
+import { CommandGroup } from "@grammyjs/commands";
 import { Menu } from "@grammyjs/menu";
-import { CommandGroup } from '@grammyjs/commands';
-import type { CustomContext } from '../types';
-import { generateUsername } from '@/utils/helpers';
+import { createId } from "@paralleldrive/cuid2";
+import type { Attachment, BlockRule, Email, EmailAddress, User } from "@temp-mail/shared-types";
+import { Composer, InlineKeyboard } from "grammy";
+import { getQuotaConfig } from "@/config/env";
 import * as db from "@/database/d1";
-import type { EmailAddress, User } from "@temp-mail/shared-types";
+import { generateUsername } from "@/utils/helpers";
+import type { CustomContext } from "../types";
 
-const COOLDOWN_SECONDS = 10;
 const MAX_RETRIES = 3;
-const MAX_EMAILS_PER_USER = 5;
 
 export const userCommands = new CommandGroup<CustomContext>();
 
+function formatEmailContent(email: Email, attachments: Attachment[]): string {
+	let text = `📧 *Email Details*\n\n`;
+	if (email.otp_code) {
+		text += `🔑 *Verification Code:* \`${email.otp_code}\` _(tap to copy)_\n\n`;
+	}
+	text += `👤 *From:* \`${email.from_address}\`\n`;
+	text += `📝 *Subject:* ${email.subject || "(No Subject)"}\n`;
+	text += `📅 *Time:* ${new Date(email.received_at * 1000).toLocaleString()}\n`;
+	text += `⭐ *Starred:* ${email.is_starred ? "Yes" : "No"}\n`;
+
+	if (email.summary) {
+		text += `\n🤖 *Summary:*\n_${email.summary}_\n`;
+	}
+
+	if (attachments.length > 0) {
+		text += `\n📎 *Attachments (${attachments.length}):*\n`;
+		for (const att of attachments) {
+			text += `• \`${att.file_name}\` (${Math.round(att.file_size / 1024)} KB)\n`;
+		}
+	}
+
+	text += `\n--------------------------------\n${email.text_content || "_(No text content)_"}\n`;
+	return text;
+}
+
+function buildEmailKeyboard(
+	emailId: string,
+	fromAddress: string,
+	isStarred: boolean,
+): InlineKeyboard {
+	const starLabel = isStarred ? "⭐ Unstar" : "⭐ Star";
+	return new InlineKeyboard()
+		.text(starLabel, `star_email:${emailId}`)
+		.text("↗️ Forward", `forward_email:${emailId}`)
+		.row()
+		.text("🚫 Block Sender", `block_sender:${fromAddress}`)
+		.text("❌ Delete", `delete_email:${emailId}`)
+		.row()
+		.text("🔙 Close", "delete_msg");
+}
+
+/**
+ * Telegram admins (`ADMIN_ID`) may act on any address; other users only on their own.
+ */
+function isAdminChat(chatId: number | undefined): boolean {
+	if (chatId === undefined) return false;
+	return (env.ADMIN_ID || "")
+		.split(",")
+		.map((id) => id.trim())
+		.includes(String(chatId));
+}
+
+/**
+ * True when the chat owns the address (or is an admin).
+ */
+async function canManageAddress(chatId: number | undefined, address: string): Promise<boolean> {
+	if (chatId === undefined) return false;
+	const { result } = await db.getEmailAddressByAddress(env.D1, address);
+	if (!result) return false;
+	return result.user_id === chatId || isAdminChat(chatId);
+}
+
+/**
+ * True when the chat owns the email's recipient address (or is an admin).
+ */
+async function canManageEmail(chatId: number | undefined, emailId: string) {
+	const { result: email } = await db.getEmailById(env.D1, emailId);
+	if (!email) return { email: null, allowed: false };
+	const allowed = await canManageAddress(chatId, email.to_address);
+	return { email, allowed };
+}
+
 export async function showEmail(ctx: CustomContext, emailId: string) {
-  const { result: email, error } = await db.getEmailById(env.D1, emailId);
+	const { result: email, error } = await db.getEmailById(env.D1, emailId);
+	if (error || !email) {
+		return await ctx.reply("❌ Email not found or expired.", { parse_mode: "Markdown" });
+	}
 
-  if (error || !email) {
-    return await ctx.reply("❌ Email not found or expired.", { parse_mode: "Markdown" });
-  }
+	if (!(await canManageAddress(ctx.from?.id, email.to_address))) {
+		return await ctx.reply("❌ Permission denied. This email does not belong to you.", {
+			parse_mode: "Markdown",
+		});
+	}
 
-  // Format nội dung hiển thị
-  const text =
-    `📧 *Email Details*
+	let attachments: Attachment[] = [];
+	if (email.has_attachments) {
+		const res = await db.getAttachmentsByEmailId(env.D1, emailId);
+		attachments = res.results || [];
+	}
 
-👤 *From:* \`${email.from_address}\`
-📝 *Subject:* ${email.subject || "(No Subject)"}
-📅 *Time:* ${new Date(email.received_at * 1000).toLocaleString()}
+	const text = formatEmailContent(email, attachments);
+	const keyboard = buildEmailKeyboard(emailId, email.from_address, email.is_starred);
 
---------------------------------
-${email.text_content || "_(No text content)_"}
-`;
-
-  // Nút chức năng bên dưới email (ví dụ: Xóa, Đóng)
-  const keyboard = new InlineKeyboard()
-    .text("❌ Delete", `delete_email:${emailId}`)
-    .text("🔙 Close", "delete_msg");
-
-  // Nếu là callback (bấm nút), sửa tin nhắn cũ hoặc gửi tin mới
-  if (ctx.callbackQuery) {
-    await ctx.answerCallbackQuery(); // Tắt vòng xoay loading
-    await ctx.reply(text, { parse_mode: "Markdown", reply_markup: keyboard });
-  } else {
-    // Nếu là command, gửi tin nhắn mới
-    await ctx.reply(text, { parse_mode: "Markdown", reply_markup: keyboard });
-  }
+	if (ctx.callbackQuery) {
+		await ctx.answerCallbackQuery();
+	}
+	return await ctx.reply(text, { parse_mode: "Markdown", reply_markup: keyboard });
 }
 
 // Menu
-export const newGenerateMenu = new Menu<CustomContext>('generated-email');
+export const newGenerateMenu = new Menu<CustomContext>("generated-email");
 
 newGenerateMenu
-  .text('🔃 Re-generate', async (ctx) => {
-    if (!ctx.from) return await ctx.answerCallbackQuery("❌ User not found.");
+	.text("🔃 Re-generate", async (ctx) => {
+		if (!ctx.from) return await ctx.answerCallbackQuery("❌ User not found.");
 
-    const { DOMAIN, D1, ADMIN_ID } = env;
+		const { DOMAIN, D1, ADMIN_ID } = env;
+		const { maxAddresses, rateLimitSeconds } = getQuotaConfig(env);
 
-    // Admin check
-    const adminList = (ADMIN_ID || "").split(',');
-    const isAdmin = adminList.includes(ctx.from.id.toString());
+		// Admin check
+		const adminList = (ADMIN_ID || "").split(",");
+		const isAdmin = adminList.includes(ctx.from.id.toString());
 
-    if (!isAdmin) {
-      // Limit check
-      const { count } = await db.countEmailsByUserId(D1, ctx.from.id);
-      if (count >= MAX_EMAILS_PER_USER) {
-        return await ctx.answerCallbackQuery(`❌ You have reached the limit of ${MAX_EMAILS_PER_USER} emails. Please delete some before creating new ones.`);
-      }
+		if (!isAdmin) {
+			// Limit check
+			const { count } = await db.countEmailsByUserId(D1, ctx.from.id);
+			if (count >= maxAddresses) {
+				return await ctx.answerCallbackQuery(
+					`❌ You have reached the limit of ${maxAddresses} emails. Please delete some before creating new ones.`,
+				);
+			}
 
-      // Cooldown check
-      const { result: latestEmail } = await db.getLatestEmailByUserId(D1, ctx.from.id);
-      if (latestEmail) {
-        const now = Math.floor(Date.now() / 1000);
-        const diff = now - latestEmail.created_at;
-        if (diff < COOLDOWN_SECONDS) {
-          return await ctx.answerCallbackQuery(`⏳ Please wait ${COOLDOWN_SECONDS - diff}s.`);
-        }
-      }
-    }
+			// Cooldown check
+			const { result: latestEmail } = await db.getLatestEmailByUserId(D1, ctx.from.id);
+			if (latestEmail) {
+				const now = Math.floor(Date.now() / 1000);
+				const diff = now - latestEmail.created_at;
+				if (diff < rateLimitSeconds) {
+					return await ctx.answerCallbackQuery(`⏳ Please wait ${rateLimitSeconds - diff}s.`);
+				}
+			}
+		}
 
-    const user: User = {
-      id: ctx.from.id,
-      username: ctx.from.username,
-      first_name: ctx.from.first_name,
-      last_name: ctx.from.last_name,
-      language_code: ctx.from.language_code,
-      created_at: Math.floor(Date.now() / 1000),
-    };
-    const userRes = await db.createOrUpdateUser(D1, user);
-    if (!userRes.success) {
-      return await ctx.answerCallbackQuery("❌ Database error: Could not record user data.");
-    }
+		const user: User = {
+			id: ctx.from.id,
+			username: ctx.from.username,
+			first_name: ctx.from.first_name,
+			last_name: ctx.from.last_name,
+			language_code: ctx.from.language_code,
+			created_at: Math.floor(Date.now() / 1000),
+		};
+		const userRes = await db.createOrUpdateUser(D1, user);
+		if (!userRes.success) {
+			return await ctx.answerCallbackQuery("❌ Database error: Could not record user data.");
+		}
 
-    let address = "";
-    let success = false;
+		let address = "";
+		let success = false;
 
-    // Retry loop for collision handling
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      const newUsername = generateUsername();
-      address = `${newUsername}@${DOMAIN}`;
-      const emailData: EmailAddress = {
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        address,
-        created_at: Math.floor(Date.now() / 1000),
-      };
-      const result = await db.createEmailAddress(D1, emailData);
-      if (result.success) {
-        success = true;
-        break;
-      }
-    }
+		// Retry loop for collision handling
+		for (let i = 0; i < MAX_RETRIES; i++) {
+			const newUsername = generateUsername();
+			address = `${newUsername}@${DOMAIN}`;
+			const emailData: EmailAddress = {
+				id: crypto.randomUUID(),
+				user_id: user.id,
+				address,
+				created_at: Math.floor(Date.now() / 1000),
+			};
+			const result = await db.createEmailAddress(D1, emailData);
+			if (result.success) {
+				success = true;
+				break;
+			}
+		}
 
-    if (!success) {
-      return await ctx.answerCallbackQuery("❌ Failed to generate unique email. Please try again.");
-    }
+		if (!success) {
+			return await ctx.answerCallbackQuery("❌ Failed to generate unique email. Please try again.");
+		}
 
-    const text = `New email address generated: \`${address}\``;
-    return await ctx.editMessageText(text, { parse_mode: 'Markdown', reply_markup: newGenerateMenu });
-  })
-  .row()
-  .text('🗑️ Delete', async (ctx) => { await ctx.deleteMessage(); })
+		const text = `New email address generated: \`${address}\``;
+		return await ctx.editMessageText(text, {
+			parse_mode: "Markdown",
+			reply_markup: newGenerateMenu,
+		});
+	})
+	.row()
+	.text("🗑️ Delete", async (ctx) => {
+		await ctx.deleteMessage();
+	});
 
 // Commands
-userCommands.command('id', 'Show chat ID', async (ctx) => {
-  const text = `Your chat ID is \`${ctx.chatId}\``;
-  return await ctx.reply(text, {
-    parse_mode: 'Markdown',
-    reply_parameters: { message_id: ctx.msg.message_id },
-  });
+userCommands.command("id", "Show chat ID", async (ctx) => {
+	const text = `Your chat ID is \`${ctx.chatId}\``;
+	return await ctx.reply(text, {
+		parse_mode: "Markdown",
+		reply_parameters: { message_id: ctx.msg.message_id },
+	});
 });
 
-userCommands.command('new', 'Generate random email address', async (ctx) => {
-  if (!ctx.from) return await ctx.reply("❌ *User not found*.", { parse_mode: "Markdown" });
+userCommands.command("new", "Generate random email address", async (ctx) => {
+	if (!ctx.from) return await ctx.reply("❌ *User not found*.", { parse_mode: "Markdown" });
 
-  const { DOMAIN, D1, ADMIN_ID } = env;
+	const { DOMAIN, D1, ADMIN_ID } = env;
+	const { maxAddresses, rateLimitSeconds } = getQuotaConfig(env);
 
-  // Admin check
-  const adminList = (ADMIN_ID || "").split(',');
-  const isAdmin = adminList.includes(ctx.from.id.toString());
+	// Admin check
+	const adminList = (ADMIN_ID || "").split(",");
+	const isAdmin = adminList.includes(ctx.from.id.toString());
 
-  if (!isAdmin) {
-    // Limit check
-    const { count } = await db.countEmailsByUserId(D1, ctx.from.id);
-    if (count >= MAX_EMAILS_PER_USER) {
-      return await ctx.reply(`❌ You have reached the limit of *${MAX_EMAILS_PER_USER}* emails. Please delete some before creating new ones.`, { parse_mode: "Markdown" });
-    }
+	if (!isAdmin) {
+		// Limit check
+		const { count } = await db.countEmailsByUserId(D1, ctx.from.id);
+		if (count >= maxAddresses) {
+			return await ctx.reply(
+				`❌ You have reached the limit of *${maxAddresses}* emails. Please delete some before creating new ones.`,
+				{ parse_mode: "Markdown" },
+			);
+		}
 
-    // Cooldown check
-    const { result: latestEmail } = await db.getLatestEmailByUserId(D1, ctx.from.id);
-    if (latestEmail) {
-      const now = Math.floor(Date.now() / 1000);
-      const diff = now - latestEmail.created_at;
-      if (diff < COOLDOWN_SECONDS) {
-        return await ctx.reply(`⏳ Please wait *${COOLDOWN_SECONDS - diff}s* before generating a new email.`, { parse_mode: "Markdown" });
-      }
-    }
-  }
+		// Cooldown check
+		const { result: latestEmail } = await db.getLatestEmailByUserId(D1, ctx.from.id);
+		if (latestEmail) {
+			const now = Math.floor(Date.now() / 1000);
+			const diff = now - latestEmail.created_at;
+			if (diff < rateLimitSeconds) {
+				return await ctx.reply(
+					`⏳ Please wait *${rateLimitSeconds - diff}s* before generating a new email.`,
+					{ parse_mode: "Markdown" },
+				);
+			}
+		}
+	}
 
-  const user: User = {
-    id: ctx.from.id,
-    username: ctx.from.username,
-    first_name: ctx.from.first_name,
-    last_name: ctx.from.last_name,
-    language_code: ctx.from.language_code,
-    created_at: Math.floor(Date.now() / 1000),
-  };
-  const userRes = await db.createOrUpdateUser(D1, user);
-  if (!userRes.success) {
-    return await ctx.reply("❌ Database error: Could not record user data.", { parse_mode: "Markdown" });
-  }
+	const user: User = {
+		id: ctx.from.id,
+		username: ctx.from.username,
+		first_name: ctx.from.first_name,
+		last_name: ctx.from.last_name,
+		language_code: ctx.from.language_code,
+		created_at: Math.floor(Date.now() / 1000),
+	};
+	const userRes = await db.createOrUpdateUser(D1, user);
+	if (!userRes.success) {
+		return await ctx.reply("❌ Database error: Could not record user data.", {
+			parse_mode: "Markdown",
+		});
+	}
 
+	let address = "";
+	let success = false;
 
-  let address = "";
-  let success = false;
+	for (let i = 0; i < MAX_RETRIES; i++) {
+		const randomUsername = generateUsername();
+		address = `${randomUsername}@${DOMAIN}`;
+		const emailData: EmailAddress = {
+			id: crypto.randomUUID(),
+			user_id: user.id,
+			address,
+			created_at: Math.floor(Date.now() / 1000),
+		};
+		const result = await db.createEmailAddress(D1, emailData);
+		if (result.success) {
+			success = true;
+			break;
+		}
+	}
 
-  for (let i = 0; i < MAX_RETRIES; i++) {
-    const randomUsername = generateUsername();
-    address = `${randomUsername}@${DOMAIN}`;
-    const emailData: EmailAddress = {
-      id: crypto.randomUUID(),
-      user_id: user.id,
-      address,
-      created_at: Math.floor(Date.now() / 1000),
-    };
-    const result = await db.createEmailAddress(D1, emailData);
-    if (result.success) {
-      success = true;
-      break;
-    }
-  }
+	if (!success) {
+		return await ctx.reply("❌ Failed to generate unique email. Please try again.", {
+			parse_mode: "Markdown",
+		});
+	}
 
-  if (!success) {
-    return await ctx.reply("❌ Failed to generate unique email. Please try again.", { parse_mode: "Markdown" });
-  }
-
-  const text = `New email address generated: \`${address}\``;
-  return await ctx.reply(text, { parse_mode: 'Markdown', reply_markup: newGenerateMenu });
+	const text = `New email address generated: \`${address}\``;
+	return await ctx.reply(text, { parse_mode: "Markdown", reply_markup: newGenerateMenu });
 });
 
-userCommands.command('list', 'List your email addresses', async (ctx) => {
-  if (!ctx.from) return await ctx.reply("❌ *User not found*.", { parse_mode: "Markdown" });
+userCommands.command("list", "List your email addresses", async (ctx) => {
+	if (!ctx.from) return await ctx.reply("❌ *User not found*.", { parse_mode: "Markdown" });
 
-  const { results, error } = await db.getEmailAddressesByUserId(env.D1, ctx.from.id);
+	const { results, error } = await db.getEmailAddressesByUserId(env.D1, ctx.from.id);
 
-  if (error) {
-    return await ctx.reply(`❌ Failed to fetch email addresses: \`${error}\``, { parse_mode: "Markdown" });
-  }
+	if (error) {
+		return await ctx.reply(`❌ Failed to fetch email addresses: \`${error}\``, {
+			parse_mode: "Markdown",
+		});
+	}
 
-  if (results.length === 0) {
-    return await ctx.reply("📭 You don't have any active email addresses.", { parse_mode: "Markdown" });
-  }
+	if (results.length === 0) {
+		return await ctx.reply("📭 You don't have any active email addresses.", {
+			parse_mode: "Markdown",
+		});
+	}
 
-  const text = `📋 *Your Email Addresses* (${results.length}/${MAX_EMAILS_PER_USER})`;
+	const text = `📋 *Your Email Addresses* (${results.length}/${getQuotaConfig(env).maxAddresses})`;
 
-  const keyboard = new InlineKeyboard();
-  for (const email of results) {
-    keyboard.text(`📖 ${email.address}`, `view_address_info:${email.id}`).row();
-  }
+	const keyboard = new InlineKeyboard();
+	for (const email of results) {
+		keyboard.text(`📖 ${email.address}`, `view_address_info:${email.id}`).row();
+	}
 
-  return await ctx.reply(text, { parse_mode: 'Markdown', reply_markup: keyboard });
+	return await ctx.reply(text, { parse_mode: "Markdown", reply_markup: keyboard });
 });
 
 export const userComposer = new Composer<CustomContext>();
@@ -226,151 +313,219 @@ export const userComposer = new Composer<CustomContext>();
 // --- Callback Handlers ---
 
 userComposer.callbackQuery(/^view_address_info:(.+)$/, async (ctx) => {
-  const addressId = ctx.match[1];
-  const { result: addr, error } = await db.getEmailAddressById(env.D1, addressId);
+	const addressId = ctx.match[1];
+	const { result: addr, error } = await db.getEmailAddressById(env.D1, addressId);
 
-  if (error || !addr) {
-    return await ctx.answerCallbackQuery("❌ Address not found.");
-  }
+	if (error || !addr) {
+		return await ctx.answerCallbackQuery("❌ Address not found.");
+	}
 
-  const text = `📍 *Address:* \`${addr.address}\`
+	const text = `📍 *Address:* \`${addr.address}\`
 📅 *Created:* ${new Date(addr.created_at * 1000).toLocaleString()}
 ${addr.expires_at ? `⌛ *Expires:* ${new Date(addr.expires_at * 1000).toLocaleString()}` : ""}
 `;
 
-  const keyboard = new InlineKeyboard()
-    .text("📥 View Emails", `read_emails:${addr.address}`)
-    .text("🗑️ Delete Address", `delete_address:${addr.id}`)
-    .row()
-    .text("🔙 Back to List", "list_my_addresses")
-    .text("❌ Close", "delete_msg");
+	const keyboard = new InlineKeyboard()
+		.text("📥 View Emails", `read_emails:${addr.address}`)
+		.text("🗑️ Delete Address", `delete_address:${addr.id}`)
+		.row()
+		.text("🔙 Back to List", "list_my_addresses")
+		.text("❌ Close", "delete_msg");
 
-  await ctx.editMessageText(text, { parse_mode: 'Markdown', reply_markup: keyboard });
+	await ctx.editMessageText(text, { parse_mode: "Markdown", reply_markup: keyboard });
 });
 
 userComposer.callbackQuery("list_my_addresses", async (ctx) => {
-  if (!ctx.from) return;
-  const { results } = await db.getEmailAddressesByUserId(env.D1, ctx.from.id);
+	if (!ctx.from) return;
+	const { results } = await db.getEmailAddressesByUserId(env.D1, ctx.from.id);
 
-  const text = `📋 *Your Email Addresses* (${results.length}/${MAX_EMAILS_PER_USER})`;
-  const keyboard = new InlineKeyboard();
-  for (const email of results) {
-    keyboard.text(`📖 ${email.address}`, `view_address_info:${email.id}`).row();
-  }
+	const text = `📋 *Your Email Addresses* (${results.length}/${getQuotaConfig(env).maxAddresses})`;
+	const keyboard = new InlineKeyboard();
+	for (const email of results) {
+		keyboard.text(`📖 ${email.address}`, `view_address_info:${email.id}`).row();
+	}
 
-  try {
-    await ctx.editMessageText(text, { parse_mode: 'Markdown', reply_markup: keyboard });
-  } catch (e) {
-    // If message text is same, editMessageText throws
-    await ctx.answerCallbackQuery();
-  }
+	try {
+		await ctx.editMessageText(text, { parse_mode: "Markdown", reply_markup: keyboard });
+	} catch (_e) {
+		// If message text is same, editMessageText throws
+		await ctx.answerCallbackQuery();
+	}
 });
 
 userComposer.callbackQuery(/^read_emails:(.+)$/, async (ctx) => {
-  const address = ctx.match[1];
-  const { results, error } = await db.getEmailsByRecipient(env.D1, address);
+	const address = ctx.match[1];
+	const { results, error } = await db.getEmailsByRecipient(env.D1, address);
 
-  if (error) {
-    return await ctx.answerCallbackQuery("❌ Error fetching emails.");
-  }
+	if (error) {
+		return await ctx.answerCallbackQuery("❌ Error fetching emails.");
+	}
 
-  if (results.length === 0) {
-    return await ctx.answerCallbackQuery({ text: "📭 No emails received yet.", show_alert: false });
-  }
+	if (results.length === 0) {
+		return await ctx.answerCallbackQuery({ text: "📭 No emails received yet.", show_alert: false });
+	}
 
-  let text = `📧 *Emails for* \`${address}\`\n\n`;
-  const keyboard = new InlineKeyboard();
+	let text = `📧 *Emails for* \`${address}\`\n\n`;
+	const keyboard = new InlineKeyboard();
 
-  for (const email of results) {
-    text += `🔹 *${email.subject || "(No Subject)"}*\n   From: ${email.from_address}\n\n`;
-    keyboard.text(`Read: ${email.subject || "No Subject"}`, `read_single_email:${email.id}`).row();
-  }
+	for (const email of results) {
+		text += `🔹 *${email.subject || "(No Subject)"}*\n   From: ${email.from_address}\n\n`;
+		keyboard.text(`Read: ${email.subject || "No Subject"}`, `read_single_email:${email.id}`).row();
+	}
 
-  keyboard.text("🔙 Back", `view_address_info_by_addr:${address}`);
+	keyboard.text("🔙 Back", `view_address_info_by_addr:${address}`);
 
-  await ctx.editMessageText(text, { parse_mode: 'Markdown', reply_markup: keyboard });
+	await ctx.editMessageText(text, { parse_mode: "Markdown", reply_markup: keyboard });
 });
 
 userComposer.callbackQuery(/^view_address_info_by_addr:(.+)$/, async (ctx) => {
-  const address = ctx.match[1];
-  const { result: addr } = await db.getEmailAddressByAddress(env.D1, address);
-  if (!addr) return await ctx.answerCallbackQuery("❌ Address not found.");
+	const address = ctx.match[1];
+	const { result: addr } = await db.getEmailAddressByAddress(env.D1, address);
+	if (!addr) return await ctx.answerCallbackQuery("❌ Address not found.");
 
-  const text = `📍 *Address:* \`${addr.address}\`
+	const text = `📍 *Address:* \`${addr.address}\`
 📅 *Created:* ${new Date(addr.created_at * 1000).toLocaleString()}
 `;
-  const keyboard = new InlineKeyboard()
-    .text("📥 View Emails", `read_emails:${addr.address}`)
-    .text("🗑️ Delete Address", `delete_address:${addr.id}`)
-    .row()
-    .text("🔙 Back to List", "list_my_addresses")
-    .text("❌ Close", "delete_msg");
+	const keyboard = new InlineKeyboard()
+		.text("📥 View Emails", `read_emails:${addr.address}`)
+		.text("🗑️ Delete Address", `delete_address:${addr.id}`)
+		.row()
+		.text("🔙 Back to List", "list_my_addresses")
+		.text("❌ Close", "delete_msg");
 
-  await ctx.editMessageText(text, { parse_mode: 'Markdown', reply_markup: keyboard });
+	await ctx.editMessageText(text, { parse_mode: "Markdown", reply_markup: keyboard });
 });
 
 userComposer.callbackQuery(/^read_single_email:(.+)$/, async (ctx) => {
-  const emailId = ctx.match[1];
-  await showEmail(ctx, emailId);
+	const emailId = ctx.match[1];
+	await showEmail(ctx, emailId);
 });
 
-userCommands.command('delete', 'Delete an email address', async (ctx) => {
-  const address = ctx.match;
-  if (!address) {
-    return await ctx.reply("❌ Please specify the address. Usage: `/delete <address>`", { parse_mode: 'Markdown' });
-  }
+userCommands.command("delete", "Delete an email address", async (ctx) => {
+	const address = ctx.match;
+	if (!address) {
+		return await ctx.reply("❌ Please specify the address. Usage: `/delete <address>`", {
+			parse_mode: "Markdown",
+		});
+	}
 
-  const { result: addr, error } = await db.getEmailAddressByAddress(env.D1, address);
+	const { result: addr, error } = await db.getEmailAddressByAddress(env.D1, address);
 
-  if (error || !addr) {
-    return await ctx.reply("❌ Address not found.", { parse_mode: "Markdown" });
-  }
+	if (error || !addr) {
+		return await ctx.reply("❌ Address not found.", { parse_mode: "Markdown" });
+	}
 
-  // Ownership check
-  const isAdmin = (env.ADMIN_ID || "").split(',').includes(ctx.from?.id.toString() || "");
-  if (addr.user_id !== ctx.from?.id && !isAdmin) {
-    return await ctx.reply("❌ Permission denied. This address does not belong to you.", { parse_mode: "Markdown" });
-  }
+	// Ownership check
+	const isAdmin = (env.ADMIN_ID || "").split(",").includes(ctx.from?.id.toString() || "");
+	if (addr.user_id !== ctx.from?.id && !isAdmin) {
+		return await ctx.reply("❌ Permission denied. This address does not belong to you.", {
+			parse_mode: "Markdown",
+		});
+	}
 
-  const { success } = await db.deleteEmailAddress(env.D1, addr.id);
-  if (success) {
-    return await ctx.reply(`✅ Address \`${address}\` deleted successfully.`, { parse_mode: 'Markdown' });
-  }
-  return await ctx.reply("❌ Failed to delete address.", { parse_mode: "Markdown" });
+	const { success } = await db.deleteEmailAddress(env.D1, addr.id);
+	if (success) {
+		return await ctx.reply(`✅ Address \`${address}\` deleted successfully.`, {
+			parse_mode: "Markdown",
+		});
+	}
+	return await ctx.reply("❌ Failed to delete address.", { parse_mode: "Markdown" });
 });
 
 userComposer.callbackQuery(/^delete_address:(.+)$/, async (ctx) => {
-  const addressId = ctx.match[1];
-  const { success } = await db.deleteEmailAddress(env.D1, addressId);
-  if (success) {
-    await ctx.answerCallbackQuery("✅ Address deleted.");
-    // Return to list
-    const { results } = await db.getEmailAddressesByUserId(env.D1, ctx.from!.id);
-    if (results.length > 0) {
-      const text = `📋 *Your Email Addresses* (${results.length}/${MAX_EMAILS_PER_USER})`;
-      const keyboard = new InlineKeyboard();
-      for (const email of results) {
-        keyboard.text(`📖 ${email.address}`, `view_address_info:${email.id}`).row();
-      }
-      await ctx.editMessageText(text, { parse_mode: 'Markdown', reply_markup: keyboard });
-    } else {
-      await ctx.editMessageText("📭 You don't have any active email addresses.", { parse_mode: "Markdown", reply_markup: new InlineKeyboard().text("❌ Close", "delete_msg") });
-    }
-  } else {
-    await ctx.answerCallbackQuery("❌ Failed to delete address.");
-  }
+	const addressId = ctx.match[1];
+	const { result: addr } = await db.getEmailAddressById(env.D1, addressId);
+	if (!addr || !(await canManageAddress(ctx.from?.id, addr.address))) {
+		return await ctx.answerCallbackQuery("❌ Permission denied.");
+	}
+
+	await db.deleteEmailsByRecipient(env.D1, addr.address);
+	const { success } = await db.deleteEmailAddress(env.D1, addressId);
+	if (success) {
+		await ctx.answerCallbackQuery("✅ Address deleted.");
+		// Return to list
+		const { results } = await db.getEmailAddressesByUserId(env.D1, ctx.from?.id);
+		if (results.length > 0) {
+			const text = `📋 *Your Email Addresses* (${results.length}/${getQuotaConfig(env).maxAddresses})`;
+			const keyboard = new InlineKeyboard();
+			for (const email of results) {
+				keyboard.text(`📖 ${email.address}`, `view_address_info:${email.id}`).row();
+			}
+			await ctx.editMessageText(text, { parse_mode: "Markdown", reply_markup: keyboard });
+		} else {
+			await ctx.editMessageText("📭 You don't have any active email addresses.", {
+				parse_mode: "Markdown",
+				reply_markup: new InlineKeyboard().text("❌ Close", "delete_msg"),
+			});
+		}
+	} else {
+		await ctx.answerCallbackQuery("❌ Failed to delete address.");
+	}
 });
 
 userComposer.callbackQuery(/^delete_email:(.+)$/, async (ctx) => {
-  const emailId = ctx.match[1];
-  await db.deleteEmailById(env.D1, emailId);
-  await ctx.answerCallbackQuery("Email deleted!");
-  await ctx.deleteMessage();
+	const emailId = ctx.match[1];
+	const { allowed } = await canManageEmail(ctx.from?.id, emailId);
+	if (!allowed) {
+		return await ctx.answerCallbackQuery("❌ Permission denied.");
+	}
+
+	await db.deleteEmailById(env.D1, emailId);
+	await ctx.answerCallbackQuery("Email deleted!");
+	await ctx.deleteMessage();
+});
+
+userComposer.callbackQuery(/^read_email:(.+)$/, async (ctx) => {
+	const emailId = ctx.match[1];
+	await showEmail(ctx, emailId);
+});
+
+userComposer.callbackQuery(/^star_email:(.+)$/, async (ctx) => {
+	const emailId = ctx.match[1];
+	const { email, allowed } = await canManageEmail(ctx.from?.id, emailId);
+	if (!email) {
+		return await ctx.answerCallbackQuery("❌ Email not found.");
+	}
+	if (!allowed) {
+		return await ctx.answerCallbackQuery("❌ Permission denied.");
+	}
+	const nextStarred = !email.is_starred;
+	await db.toggleStarEmail(env.D1, emailId, nextStarred);
+	await ctx.answerCallbackQuery(nextStarred ? "⭐ Email starred!" : "Email unstarred.");
+});
+
+userComposer.callbackQuery(/^block_sender:(.+)$/, async (ctx) => {
+	const senderAddress = ctx.match[1];
+	// Global block rules are an owner-only action; they affect every inbox.
+	if (!isAdminChat(ctx.from?.id)) {
+		return await ctx.answerCallbackQuery("❌ Only the owner can manage the global blocklist.");
+	}
+	const blockRule: BlockRule = {
+		id: createId(),
+		type: "sender",
+		pattern: senderAddress.trim().toLowerCase(),
+		created_at: Math.floor(Date.now() / 1000),
+	};
+	await db.createBlockRule(env.D1, blockRule);
+	await ctx.answerCallbackQuery(`🚫 Blocked sender ${senderAddress}`);
+});
+
+userComposer.callbackQuery(/^forward_email:(.+)$/, async (ctx) => {
+	const emailId = ctx.match[1];
+	const { email, allowed } = await canManageEmail(ctx.from?.id, emailId);
+	if (!email) {
+		return await ctx.answerCallbackQuery("❌ Email not found.");
+	}
+	if (!allowed) {
+		return await ctx.answerCallbackQuery("❌ Permission denied.");
+	}
+	await ctx.answerCallbackQuery("↗️ Forwarding email to chat...");
+	await showEmail(ctx, emailId);
 });
 
 userComposer.callbackQuery("delete_msg", async (ctx) => {
-  await ctx.deleteMessage();
+	await ctx.deleteMessage();
 });
 
-userComposer.use(newGenerateMenu)
-userComposer.use(userCommands)
+userComposer.use(newGenerateMenu);
+userComposer.use(userCommands);

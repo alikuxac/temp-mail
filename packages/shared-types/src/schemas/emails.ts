@@ -31,9 +31,25 @@ export const emailSchema = z
 			description: "The plain text content of the email.",
 			example: "Hello world",
 		}),
-		is_forever: z.boolean().default(false).openapi({
-			description: "Whether the email is marked as forever.",
-			example: true,
+		is_read: z.boolean().default(false).openapi({
+			description: "Whether the email is marked as read.",
+			example: false,
+		}),
+		is_starred: z.boolean().default(false).openapi({
+			description: "Whether the email is starred/pinned.",
+			example: false,
+		}),
+		otp_code: z.string().nullable().optional().openapi({
+			description: "Extracted OTP verification code or token.",
+			example: "123456",
+		}),
+		summary: z.string().nullable().optional().openapi({
+			description: "AI-generated concise summary of the email.",
+			example: "Your verification code is 123456. It will expire in 10 minutes.",
+		}),
+		has_attachments: z.boolean().default(false).openapi({
+			description: "Whether the email contains attachments.",
+			example: false,
 		}),
 	})
 	.openapi("Email");
@@ -62,6 +78,26 @@ export const emailSummarySchema = z
 		received_at: z.number().openapi({
 			description: "The timestamp when the email was received (Unix epoch).",
 			example: 1753317948,
+		}),
+		is_read: z.boolean().default(false).openapi({
+			description: "Whether the email is read.",
+			example: false,
+		}),
+		is_starred: z.boolean().default(false).openapi({
+			description: "Whether the email is starred.",
+			example: false,
+		}),
+		otp_code: z.string().nullable().optional().openapi({
+			description: "Extracted OTP verification code.",
+			example: "123456",
+		}),
+		summary: z.string().nullable().optional().openapi({
+			description: "AI summary preview.",
+			example: "Welcome confirmation email.",
+		}),
+		has_attachments: z.boolean().default(false).openapi({
+			description: "Whether attachments exist.",
+			example: false,
 		}),
 	})
 	.openapi("EmailSummary");

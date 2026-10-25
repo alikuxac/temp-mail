@@ -23,11 +23,25 @@ jobs:
           cache: "npm"
 
       - name: Install Monorepo Dependencies
-        run: npm ci --silent 
+        run: npm ci --silent
 
-      - name: Deploy Worker (app/workers)
-        working-directory: app/workers
+      - name: Build Monorepo (Turbo)
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_DISCORD_CLIENT_ID: ${{ secrets.VITE_DISCORD_CLIENT_ID }}
+          VITE_TELEGRAM_BOT_URL: ${{ secrets.VITE_TELEGRAM_BOT_URL }}
+
+      - name: Deploy Worker
+        working-directory: apps/workers
         run: npm run deploy > /dev/null 2>&1
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
+      - name: Deploy Telegram Mini App to Cloudflare Pages
+        working-directory: apps/telegram-mini-app
+        run: npx wrangler pages deploy dist --project-name=temp-mail-mini-app > /dev/null 2>&1
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}

@@ -1,143 +1,61 @@
 # Temp Mail Worker
 
-Cloudflare Worker that acts as a temporary email inbox.
+Cloudflare Worker that acts as a temporary email inbox, with three front-ends sharing the same
+data: the **Telegram bot**, the **Telegram Mini App**, and a **Discord Activity**.
 
-## Table of Contents
+## Documentation
 
-*   [Features](#features)
-*   [Setup Guide](#setup-guide)
-    *   [Prerequisites](#prerequisites)
-    *   [Project Setup](#project-setup)
-    *   [Cloudflare Configuration](#cloudflare-configuration)
-        *   [D1 Database Setup](#d1-database-setup)
-        *   [KV Namespace Setup](#kv-namespace-setup)
-        *   [Email Routing Setup](#email-routing-setup)
-*   [Running the Worker](#running-the-worker)
-    *   [Local Development](#local-development)
-    *   [Deployment](#deployment)
-*   [Available Scripts](#available-scripts)
-*   [API Endpoints](#api-endpoints)
-
----
+| Document | Contents |
+|---|---|
+| [Architecture](docs/architecture.md) | Apps, data flow, request authentication |
+| [Setup](docs/setup.md) | Prerequisites, project setup, environment variables |
+| [Cloudflare](docs/cloudflare.md) | D1, KV, R2, Email Routing, secrets |
+| [Integrations](docs/integrations.md) | Telegram bot + webhook, Discord Activity |
+| [Configuration](docs/configuration.md) | Quotas, feature flags, optional providers |
+| [Access Control](docs/access-control.md) | Allowlists and per-user authorization |
+| [Development](docs/development.md) | Local dev, build, deploy, release, scripts |
+| [API](docs/api.md) | HTTP endpoints and authentication |
+| [Database](docs/database.md) | Schema, migrations and their order |
 
 ## Features
 
 *   Receives emails via Cloudflare Email Routing.
-*   Stores email data in a Cloudflare D1 database.
+*   Stores email data in a Cloudflare D1 database, attachments in R2.
 *   **Telegram Bot Interface**: Manage addresses and read emails directly in Telegram.
-*   Provides comprehensive API endpoints via Hono.
-*   Automatically cleans up old emails and expired addresses.
+*   **Telegram Mini App**: Full inbox UI with OTP extraction, starring, blocking and settings.
+*   **Discord Activity**: The same inbox embedded in Discord, verified with Discord's signature.
+*   Providers with Hono + OpenAPI.
+*   Automatically cleans up old emails, empty inboxes and expired addresses.
+*   Per-user quotas and cooldowns, shared across all three front-ends.
 
----
+## Quick start
 
-## Setup Guide
-
-### Prerequisites
-
-Before you begin, ensure you have the following:
-
-*   **Npm**: Installed on your system.
-*   **Cloudflare Account**: With access to Workers, Email Routing, D1, and KV.
-*   **Telegram Bot**: Create one via [@BotFather](https://t.me/BotFather) and get your `ADMIN_ID` (your user ID).
-
-### Project Setup
-
-1.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
-
-2.  **Login to Cloudflare**:
-    ```bash
-    npx wrangler login
-    ```
-
-### Cloudflare Configuration
-
-Navigate to the worker directory:
 ```bash
-cd app/workers
-```
+npm install
+npx wrangler login
 
-#### D1 Database Setup
+cp apps/workers/.env.example apps/workers/.env
+cp apps/telegram-mini-app/.env.example apps/telegram-mini-app/.env
 
-1.  **Create the D1 database**:
-    ```bash
-    npm run db:create
-    ```
-2.  **Copy the `database_id`** from the output.
-3.  **Update `wrangler.jsonc`**: Open `wrangler.jsonc` and replace `database_id` with your ID.
-4.  **Apply Database Schema & Indexes**:
-    ```bash
-    npm run db:tables
-    npm run db:indexes
-    ```
-
-#### KV Namespace Setup
-
-1.  **Create the KV Namespace**:
-    ```bash
-    npm run kv:create
-    ```
-2.  **Copy the `id`** and update it in `wrangler.jsonc` (both `id` and `preview_id`).
-
-#### Email Routing Setup
-
-1.  **Go to Cloudflare Dashboard**: Select your domain.
-2.  **Navigate to "Email" -> "Email Routing"**.
-3.  **Create a Catch-all Rule**:
-    *   For "Action", choose "Send to Worker".
-    *   Select your Worker (e.g., `temp-mail`).
-
-## Running the Worker
-
-### Local Development
-
-To run the worker locally:
-```bash
+cd apps/workers
+npm run db:tables
+npm run db:indexes
 npm run dev
 ```
 
-### Deployment
+See [Setup](docs/setup.md) for the full walkthrough and
+[Development](docs/development.md) for build and deployment commands.
 
-To deploy your worker to Cloudflare:
-```bash
-npm run deploy
+## Repository layout
+
+```
+apps/workers           # Cloudflare Worker: API, Telegram bot, Discord routes, email ingestion
+apps/telegram-mini-app # React Mini App (Cloudflare Pages)
+packages/shared-types  # Shared Zod schemas and TypeScript types
+scripts/               # Maintenance scripts (env sync, ...)
+docs/                  # Project documentation
 ```
 
-Set your Telegram Bot Token as a secret:
-```bash
-npx wrangler secret put TELEGRAM_BOT_TOKEN
-```
+## License
 
-## Available Scripts (app/workers)
-
-- `npm run dev` - Start local development server (remote mode)
-- `npm run deploy` - Deploy to Cloudflare Workers
-- `npm run tail` - View live logs from deployed worker
-- `npm run db:create` - Create D1 database
-- `npm run db:tables` - Apply database schema
-- `npm run db:indexes` - Apply database indexes
-- `npm run kv:create` - Create KV namespace
-- `npm run check` - Run all linting and formatting checks
-- `npm run lint` - Run Biome lint
-- `npm run format` - Format code with Biome
-- `npm run tsc` - Run TypeScript compiler (noEmit)
-- `npm run cf-typegen` - Generate TypeScript types for Cloudflare bindings
-
-## API Endpoints
-
-### Email Endpoints
-
-- `GET /emails/{emailAddress}` - Get emails for a specific address
-- `GET /emails/count/{emailAddress}` - Get email count for a specific address
-- `GET /inbox/{emailId}` - Get a specific email by ID
-- `DELETE /emails/{emailAddress}` - Delete all emails for a specific address
-- `DELETE /inbox/{emailId}` - Delete a specific email by ID
-- `GET /domains` - Get list of supported domains
-
-### Health Check
-
-- `GET /health` - Service health status
-
-For complete API documentation with examples, visit: [https://mail-api.alikuxac.xyz](https://mail-api.alikuxac.xyz)
+MIT

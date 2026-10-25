@@ -1,37 +1,36 @@
 {
-  "name": "temp-mail",
-  "description": "Cloudflare Worker that acts as a temporary email inbox.",
-  "version": "0.3.0",
-  "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "biome lint .",
-    "lint:fix": "biome lint --write --unsafe .",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "check": "biome check .",
-    "check:fix": "biome check --write --unsafe ."
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/alikuxac/temp-mail.git"
-  },
-  "keywords": [],
-  "author": "Alikuxac <contact@alikuxac.xyz>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/alikuxac/temp-mail/issues"
-  },
-  "homepage": "https://github.com/alikuxac/temp-mail#readme",
-  "workspaces": [
-    "app/*",
-    "apps/*",
-    "packages/*"
-  ],
-  "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "turbo": "^2.11.6"
-  },
-  "packageManager": "npm@11.6.0"
+	"name": "temp-mail",
+	"description": "Cloudflare Worker that acts as a temporary email inbox.",
+	"version": "0.3.0",
+	"scripts": {
+		"build": "turbo run build",
+		"dev": "turbo run dev",
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"lint": "biome lint .",
+		"lint:fix": "biome lint --write --unsafe .",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"check": "biome check .",
+		"check:fix": "biome check --write --unsafe ."
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/alikuxac/temp-mail.git"
+	},
+	"keywords": [],
+	"author": "Alikuxac <contact@alikuxac.xyz>",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/alikuxac/temp-mail/issues"
+	},
+	"homepage": "https://github.com/alikuxac/temp-mail#readme",
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"devDependencies": {
+		"@biomejs/biome": "2.5.15",
+		"turbo": "^2.11.6"
+	},
+	"packageManager": "npm@11.6.0"
 }
